@@ -1,5 +1,14 @@
 # MailFilter
 
+<p align="center">
+  <img src="puclic/mail_filter_automated.PNG" width="45%" />
+  <img src="images/mail_chatbot.PNG" width="45%" />
+</p>
+
+<p align="center">
+  <em>Screenshot: Email classification and chatbot assistant</em>
+</p>
+
 MailFilter is a web application that analyzes your Gmail emails to identify your important contacts and provides an interactive chatbot assistant to help you manage your email relationships and tasks. The assistant leverages the Hugging Face Inference API with the `mistralai/Mistral-Nemo-Instruct-2407` model to generate personalized responses.
 
 ## Features
@@ -113,4 +122,4 @@ MailFilter is a web application that analyzes your Gmail emails to identify your
 
 ## License
 
-[Specify your license here, e.g., MIT License]
+MIT License
