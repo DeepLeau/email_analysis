@@ -20,6 +20,12 @@ app.get('/', (req, res) => {
   });
 });
 
+app.get('/chatbot', (req, res) => {
+  res.render('chatbot', { 
+    hfApiToken: process.env.HF_API_TOKEN
+  });
+});
+
 app.post('/auth/google/callback', async (req, res) => {
   try {
     const { code } = req.body;

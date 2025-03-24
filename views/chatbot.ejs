@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailFilter - Chatbot Assistant</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+  <style>
+    :root {
+      --primary: #4285F4;
+      --dark: #333;
+      --light: #f5f5f5;
+      --success: #34A853;
+      --warning: #FBBC05;
+      --error: #EA4335;
+      --radius: 8px;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--light);
+      color: var(--dark);
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      color: #666;
+      max-width: 600px;
+      margin: 0 auto 20px auto;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: var(--radius);
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn:hover {
+      background-color: #3367d6;
+    }
+    
+    .btn:disabled {
+      background-color: #b3b3b3;
+      cursor: not-allowed;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .controls .btn {
+      flex: 1;
+    }
+    
+    #privacy-notice {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    
+    /* Styles spécifiques au chatbot */
+    .chat-container {
+      height: 500px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .chat-messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: var(--radius);
+      margin-bottom: 15px;
+    }
+    
+    .message {
+      margin-bottom: 15px;
+      max-width: 80%;
+      padding: 10px 15px;
+      border-radius: 18px;
+      position: relative;
+      word-wrap: break-word;
+    }
+    
+    .user-message {
+      background-color: var(--primary);
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .bot-message {
+      background-color: #e9e9e9;
+      color: var(--dark);
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+    }
+    
+    .message-time {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 5px;
+      text-align: right;
+    }
+    
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .chat-input input {
+      flex-grow: 1;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      font-size: 14px;
+    }
+    
+    .chat-input input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+    
+    .send-btn {
+      padding: 10px 20px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    
+    .send-btn:disabled {
+      background-color: #b3b3b3;
+    }
+    
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    
+    .suggestion-chip {
+      background-color: rgba(66, 133, 244, 0.1);
+      color: var(--primary);
+      padding: 8px 12px;
+      border-radius: 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid rgba(66, 133, 244, 0.3);
+    }
+    
+    .suggestion-chip:hover {
+      background-color: rgba(66, 133, 244, 0.2);
+    }
+    
+    .typing-indicator {
+      display: flex;
+      padding: 10px 15px;
+      background-color: #e9e9e9;
+      width: fit-content;
+      border-radius: 18px;
+      margin-bottom: 15px;
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+    }
+    
+    .typing-dot {
+      height: 8px;
+      width: 8px;
+      background-color: #777;
+      border-radius: 50%;
+      margin-right: 4px;
+      animation: typing-animation 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dot:nth-child(1) {
+      animation-delay: 0s;
+    }
+    
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+      margin-right: 0;
+    }
+    
+    @keyframes typing-animation {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.6;
+      }
+      30% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <header>
+      <h1>MailFilter Assistant</h1>
+      <p class="description">Posez vos questions sur vos emails et la gestion de votre messagerie</p>
+    </header>
+    
+    <div class="card">
+      <div class="controls">
+        <button class="btn" id="backButton">Retour à l'analyse</button>
+      </div>
+      
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Les messages s'afficheront ici -->
+        </div>
+        
+        <div class="chat-input">
+          <input type="text" id="messageInput" placeholder="Tapez votre message ici..." autocomplete="off">
+          <button class="send-btn" id="sendButton">Envoyer</button>
+        </div>
+        
+        <div class="suggestions" id="suggestions">
+          <!-- Les suggestions s'afficheront ici -->
+        </div>
+      </div>
+    </div>
+    
+    <div id="privacy-notice">
+      <p>🔒 Vos données restent privées. Cette application utilise uniquement votre navigateur et n'enregistre aucune donnée sur nos serveurs.</p>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { InferenceClient } from "https://cdn.skypack.dev/@huggingface/inference";
+    
+    // Instanciation du client Hugging Face
+    const hfClient = new InferenceClient('<%= hfApiToken %>');
+    
+    // État de l'application
+    const state = {
+      messages: [],
+      isTyping: false
+    };
+
+    const emails = [
+        {
+            sender: "john.doe@gmail.com",
+            trust: "High trust",
+            interactions_frequency: 4,
+            relationship_context: "Family",
+            expertise: "Finance", // Centre d'intérêt : Finance
+            emotional_proximity: "High",
+            relationship_duration: "6 years",
+            exchange_balance: 1.2,
+            relations_connections: ["jane.smith@yahoo.com"]
+        },
+        {
+            sender: "jane.smith@yahoo.com",
+            trust: "Medium trust",
+            interactions_frequency: 3,
+            relationship_context: "Friend",
+            expertise: "Technology",
+            emotional_proximity: "Medium",
+            relationship_duration: "3 years",
+            exchange_balance: 0.8,
+            relations_connections: ["john.doe@gmail.com", "emma@live.fr"]
+        },
+        {
+            sender: "robert@outlook.com",
+            trust: "Low trust",
+            interactions_frequency: 1,
+            relationship_context: "Acquaintance",
+            expertise: "Art",
+            emotional_proximity: "Low",
+            relationship_duration: "1 year",
+            exchange_balance: 0.5,
+            relations_connections: []
+        },
+        {
+            sender: "emma@live.fr",
+            trust: "Very high trust",
+            interactions_frequency: 8,
+            relationship_context: "Family",
+            expertise: "Health",
+            emotional_proximity: "Very High",
+            relationship_duration: "10 years",
+            exchange_balance: 1.5,
+            relations_connections: ["michael@hotmail.com"]
+        },
+        {
+            sender: "michael@hotmail.com",
+            trust: "High trust",
+            interactions_frequency: 6,
+            relationship_context: "Colleague",
+            expertise: "Engineering",
+            emotional_proximity: "Medium",
+            relationship_duration: "4 years",
+            exchange_balance: 1.0,
+            relations_connections: ["olivia@yahoo.com"]
+        },
+        {
+            sender: "sophia@gmail.com",
+            trust: "Medium trust",
+            interactions_frequency: 4,
+            relationship_context: "Friend",
+            expertise: "Travel",
+            emotional_proximity: "High",
+            relationship_duration: "2 years",
+            exchange_balance: 1.1,
+            relations_connections: ["william@aol.com"]
+        },
+        {
+            sender: "william@aol.com",
+            trust: "Low trust",
+            interactions_frequency: 2,
+            relationship_context: "Acquaintance",
+            expertise: "Cooking",
+            emotional_proximity: "Low",
+            relationship_duration: "1.5 years",
+            exchange_balance: 0.7,
+            relations_connections: []
+        },
+        {
+            sender: "olivia@yahoo.com",
+            trust: "High trust",
+            interactions_frequency: 7,
+            relationship_context: "Friend",
+            expertise: "Literature",
+            emotional_proximity: "High",
+            relationship_duration: "5 years",
+            exchange_balance: 1.3,
+            relations_connections: ["michael@hotmail.com"]
+        },
+        {
+            sender: "lucas@icloud.com",
+            trust: "Medium trust",
+            interactions_frequency: 5,
+            relationship_context: "Colleague",
+            expertise: "Finance", // Même centre d'intérêt que le 1er email
+            emotional_proximity: "Medium",
+            relationship_duration: "3 years",
+            exchange_balance: 1.0,
+            relations_connections: ["john.doe@gmail.com"]
+        },
+        {
+            sender: "mia@live.com",
+            trust: "Very high trust",
+            interactions_frequency: 9,
+            relationship_context: "Family",
+            expertise: "Music",
+            emotional_proximity: "Very High",
+            relationship_duration: "12 years",
+            exchange_balance: 1.8,
+            relations_connections: ["emma@live.fr"]
+        }
+        ];
+
+    
+    // Suggestions fréquentes
+    const initialSuggestions = [
+      "Comment filtrer mes emails promotionnels ?",
+      "Quels sont mes emails les plus importants ?",
+      "Comment retrouver les emails d'un expéditeur spécifique ?",
+      "Comment organiser ma boîte mail ?"
+    ];
+    
+    // Fonction d'initialisation de l'application
+    function initApp() {
+      renderChat();
+      
+      // Ajouter le message de bienvenue du bot
+      addBotMessage(`Bonjour ! Je suis l'assistant MailFilter. Comment puis-je vous aider avec vos emails aujourd'hui ?`);
+      
+      // Event listeners
+      document.getElementById('sendButton').addEventListener('click', sendMessage);
+      document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+      
+      document.getElementById('backButton').addEventListener('click', () => {
+        window.location.href = '/';
+      });
+      
+      // Afficher les suggestions initiales
+      renderSuggestions(initialSuggestions);
+    }
+    
+    // Rendu du chat
+    function renderChat() {
+      const messagesEl = document.getElementById('chatMessages');
+      messagesEl.innerHTML = '';
+      
+      state.messages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${msg.sender === 'user' ? 'user-message' : 'bot-message'}`;
+        
+        // Formatter le texte avec des sauts de ligne HTML
+        const formattedText = msg.text.replace(/\n/g, '<br>');
+        messageDiv.innerHTML = formattedText;
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = formatTime(msg.time);
+        messageDiv.appendChild(timeDiv);
+        
+        messagesEl.appendChild(messageDiv);
+      });
+      
+      // Afficher l'indicateur de frappe si nécessaire
+      if (state.isTyping) {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.innerHTML = `
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        `;
+        messagesEl.appendChild(typingDiv);
+      }
+      
+      // Scroller vers le bas
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    
+    // Afficher les suggestions
+    function renderSuggestions(suggestions) {
+      const suggestionsEl = document.getElementById('suggestions');
+      suggestionsEl.innerHTML = '';
+      
+      suggestions.forEach(suggestion => {
+        const chipDiv = document.createElement('div');
+        chipDiv.className = 'suggestion-chip';
+        chipDiv.textContent = suggestion;
+        chipDiv.addEventListener('click', () => {
+          document.getElementById('messageInput').value = suggestion;
+          sendMessage();
+        });
+        
+        suggestionsEl.appendChild(chipDiv);
+      });
+    }
+    
+    // Ajouter un message utilisateur
+    function addUserMessage(text) {
+      state.messages.push({
+        text,
+        sender: 'user',
+        time: new Date()
+      });
+      renderChat();
+    }
+    
+    // Ajouter un message bot
+    function addBotMessage(text) {
+      state.messages.push({
+        text,
+        sender: 'bot',
+        time: new Date()
+      });
+      renderChat();
+    }
+    
+    // Formater l'heure d'un message
+    function formatTime(date) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function cleanResponse(text) {
+        const marker = "Ne retourne aucun autre texte.";
+        const index = text.indexOf(marker);
+        if (index !== -1) {
+            // Renvoie tout ce qui vient après le marker
+            return text.substring(index + marker.length).trim();
+        }
+        return text.trim();
+    }
+
+    
+    async function sendMessage() {
+        const inputEl = document.getElementById('messageInput');
+        const userText = inputEl.value.trim();
+        
+        if (!userText) return;
+        
+        // Ajouter le message utilisateur
+        addUserMessage(userText);
+        inputEl.value = '';
+        
+        // Afficher l'indicateur de frappe
+        state.isTyping = true;
+        renderChat();
+        
+        try {
+            let prompt = "";
+            // Si la question concerne la sélection dans les relations
+            if (userText.toLowerCase().includes("mes relations") || userText.toLowerCase().includes("dans mes relations")) {
+                // Contexte synthétique à partir de la liste emails
+                const emailsContext = emails.map(e => {
+                    return `Email: ${e.sender}, Confiance: ${e.trust}, Expertise: ${e.expertise}, Contexte: ${e.relationship_context}, Proximité: ${e.emotional_proximity}`;
+                }).join("\n");
+                
+                // Prompt court et explicite
+                prompt = `Relations:
+    ${emailsContext}
+
+    Tâche: "${userText}"
+    Réponds uniquement par : "email: [adresse] - [explication courte]". Ne retourne aucun autre texte.`;
+            } else {
+                // Prompt par défaut pour les autres questions
+                prompt = `Utilisateur: ${userText}\nAssistant:`;
+            }
+            
+            // Appel à l'API Hugging Face via textGeneration
+            const response = await hfClient.textGeneration({
+                model: "mistralai/Mistral-Nemo-Instruct-2407",
+                inputs: prompt,
+                max_tokens: 500,
+                temperature: 0.7
+            });
+            
+            // Extraction de la réponse générée et post-traitement
+            const rawResponse = response.generated_text;
+            const botResponse = cleanResponse(rawResponse);
+            
+            // Masquer l'indicateur de frappe et ajouter la réponse du bot
+            state.isTyping = false;
+            addBotMessage(botResponse);
+            
+            // Suggestions de nouvelles questions
+            const newSuggestions = [
+                "Comment gérer mes newsletters ?",
+                "Que faire avec les emails non lus ?",
+                "Comment archiver mes emails ?",
+                "Comment créer des filtres automatiques ?"
+            ];
+            renderSuggestions(newSuggestions);
+            
+        } catch (error) {
+            console.error("Erreur lors de l'appel à l'API:", error);
+            state.isTyping = false;
+            addBotMessage("Désolé, j'ai rencontré une erreur. Pourriez-vous reformuler votre question ?");
+        }
+    }
+    
+    // Initialiser l'application au chargement
+    window.onload = initApp;
+  </script>
+</body>
+</html>

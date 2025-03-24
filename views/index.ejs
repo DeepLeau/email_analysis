@@ -365,7 +365,7 @@
         state.progress = 10;
         renderApp();
     
-        axios.get('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20', {
+        axios.get('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5', {
           headers: { Authorization: `Bearer ${state.accessToken}` }
         })
         .then(response => {
@@ -557,6 +557,7 @@
             <div class="card">
               <div class="controls">
                 <button class="btn" onclick="logout()">Se déconnecter</button>
+                <button class="btn" onclick="window.location.href='/chatbot'">Chatbot</button>
               </div>
               ${state.isLoading ? `
                 <div>
