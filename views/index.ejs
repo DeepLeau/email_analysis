@@ -279,8 +279,34 @@
         <p>🔒 Vos données restent privées. Cette application utilise uniquement votre navigateur et n'enregistre aucune donnée sur nos serveurs.</p>
       </div>
     </div>
-  
-    <script>
+    <script type="module">
+      import { InferenceClient } from "https://cdn.skypack.dev/@huggingface/inference";
+    
+      // Instanciation du client avec votre token
+      const hfClient = new InferenceClient('<%= hfApiToken %>');
+    
+      // Fonction pour décoder la chaîne en base64 "web-safe"
+      function decodeBase64Url(base64) {
+        let base64Str = base64.replace(/-/g, '+').replace(/_/g, '/');
+        return decodeURIComponent(escape(window.atob(base64Str)));
+      }
+    
+      // Fonction pour extraire le contenu texte du mail depuis le payload
+      function getEmailContent(payload) {
+        let content = "";
+        if (payload.body && payload.body.data) {
+          content = decodeBase64Url(payload.body.data);
+        }
+        if (payload.parts && payload.parts.length) {
+          payload.parts.forEach(part => {
+            if (part.mimeType === "text/plain" && part.body && part.body.data) {
+              content += decodeBase64Url(part.body.data);
+            }
+          });
+        }
+        return content;
+      }
+    
       // État de l'application
       const state = {
         isLoggedIn: false,
@@ -295,14 +321,138 @@
         automatedEmails: 0,
         error: null
       };
-  
+    
       let tokenClient; // Stocke le client OAuth2
-  
+    
+      // Fonction qui utilise le modèle HuggingFace pour analyser l'email
+      async function analyzeEmail(email) {
+        // Construction du prompt en français
+        const promptMessage = {
+          role: "user",
+          content: `Analyse l'email suivant pour déterminer s'il provient d'un contact personnel. Retourne seulement True si c'est un contact personnel, sinon False.
+          
+    Sujet: ${email.subject}
+    De: ${email.sender}
+    Contenu: ${email.content}`
+        };
+    
+        try {
+          const chatCompletion = await hfClient.chatCompletion({
+            provider: "hf-inference",
+            model: "mistralai/Mistral-Nemo-Instruct-2407",
+            messages: [promptMessage],
+            max_tokens: 10,
+          });
+          // Extraction de la réponse retournée par le modèle
+          const resultText = chatCompletion.choices[0].message;
+          let result;
+          try {
+            result = JSON.parse(resultText);
+          } catch (e) {
+            console.error("Erreur lors du parsing JSON de la réponse:", e);
+            result = {};
+          }
+          return result;
+        } catch (e) {
+          console.error("Erreur lors de l'appel à HuggingFace:", e);
+          return {};
+        }
+      }
+    
+      // Récupérer les emails de Gmail et les analyser via HuggingFace
+      function fetchEmails() {
+        state.isLoading = true;
+        state.progress = 10;
+        renderApp();
+    
+        axios.get('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20', {
+          headers: { Authorization: `Bearer ${state.accessToken}` }
+        })
+        .then(response => {
+          const messages = response.data.messages || [];
+          state.totalEmails = messages.length;
+          state.progress = 30;
+          renderApp();
+    
+          // Récupération du contenu complet de chaque email avec format=full
+          const emailPromises = messages.map(msg => {
+            return axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`, {
+              headers: { Authorization: `Bearer ${state.accessToken}` }
+            });
+          });
+    
+          return Promise.all(emailPromises);
+        })
+        .then(results => {
+          state.progress = 50;
+          renderApp();
+    
+          // Extraction des données des emails
+          const emails = results.map(result => {
+            const payload = result.data.payload;
+            let subject = '';
+            let sender = '';
+            if (payload.headers) {
+              payload.headers.forEach(header => {
+                if (header.name.toLowerCase() === 'subject') subject = header.value;
+                if (header.name.toLowerCase() === 'from') sender = header.value;
+              });
+            }
+            const content = getEmailContent(payload);
+            return {
+              id: result.data.id,
+              sender: sender,
+              subject: subject,
+              content: content,
+              preview: payload.snippet || '',
+              date: new Date(parseInt(result.data.internalDate)),
+              type: '' // sera déterminé par l'analyse
+            };
+          });
+    
+          // Pour chaque email, on appelle HuggingFace pour déterminer s'il est un contact personnel
+          const analyzePromises = emails.map(email => {
+            return analyzeEmail(email).then(result => {
+              // On attend que le modèle retourne un objet JSON avec une clé is_contact
+              if (result && result.is_contact !== undefined) {
+                email.type = result.is_contact ? 'personal' : 'automated';
+              } else {
+                email.type = 'automated'; // valeur par défaut en cas d'absence de réponse
+              }
+              return email;
+            }).catch(error => {
+              console.error("Erreur d'analyse de l'email:", error);
+              email.type = 'automated';
+              return email;
+            });
+          });
+    
+          return Promise.all(analyzePromises);
+        })
+        .then(updatedEmails => {
+          state.progress = 80;
+          renderApp();
+    
+          state.emails = updatedEmails;
+          state.filteredEmails = updatedEmails;
+          state.personalEmails = updatedEmails.filter(email => email.type === 'personal').length;
+          state.automatedEmails = updatedEmails.filter(email => email.type === 'automated').length;
+          state.isLoading = false;
+          state.progress = 100;
+          renderApp();
+        })
+        .catch(error => {
+          console.error("Erreur lors de la récupération des emails :", error);
+          state.error = "Erreur lors de la récupération des emails: " + (error.response?.data?.error?.message || error.message);
+          state.isLoading = false;
+          renderApp();
+        });
+      }
+    
       // Initialisation de l'application avec la nouvelle méthode
       function initApp() {
         renderApp();
-  
-        // Initialiser le token client pour obtenir un token d'accès
+    
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: '<%= googleClientId %>',
           scope: 'https://www.googleapis.com/auth/gmail.readonly',
@@ -318,15 +468,12 @@
             }
           }
         });
-  
-        // Attacher l'événement au bouton de connexion
-        // Assurez-vous que votre rendu de login dans renderApp() inclut un élément avec l'id "loginButton"
+    
         document.getElementById('loginButton').addEventListener('click', () => {
           tokenClient.requestAccessToken();
         });
       }
-  
-      // Déconnexion simple
+    
       function logout() {
         state.isLoggedIn = false;
         state.accessToken = null;
@@ -338,72 +485,11 @@
         state.automatedEmails = 0;
         renderApp();
       }
-  
-      // Récupérer les emails de Gmail (ici, on demande les 10 premiers)
-      function fetchEmails() {
-        state.isLoading = true;
-        state.progress = 100;
-        renderApp();
-  
-        axios.get('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100', {
-          headers: { Authorization: `Bearer ${state.accessToken}` }
-        })
-        .then(response => {
-          const messages = response.data.messages || [];
-          state.totalEmails = messages.length;
-          state.progress = 30;
-          renderApp();
-          
-          const emailPromises = messages.map(msg => {
-            return axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`, {
-              headers: { Authorization: `Bearer ${state.accessToken}` }
-            });
-          });
-          
-          return Promise.all(emailPromises);
-        })
-        .then(results => {
-          state.progress = 80;
-          renderApp();
-          
-          const emails = results.map(result => {
-            const payload = result.data.payload;
-            let subject = '';
-            let sender = '';
-            if (payload.headers) {
-              payload.headers.forEach(header => {
-                if (header.name.toLowerCase() === 'subject') subject = header.value;
-                if (header.name.toLowerCase() === 'from') sender = header.value;
-              });
-            }
-            return {
-              id: result.data.id,
-              sender: sender,
-              subject: subject,
-              preview: payload.snippet || '',
-              date: new Date(parseInt(result.data.internalDate)),
-              type: 'personal'
-            };
-          });
-          
-          state.emails = emails;
-          state.filteredEmails = emails;
-          state.isLoading = false;
-          state.progress = 100;
-          renderApp();
-        })
-        .catch(error => {
-          console.error("Erreur lors de la récupération des emails :", error);
-          state.error = "Erreur lors de la récupération des emails: " + (error.response?.data?.error?.message || error.message);
-          state.isLoading = false;
-          renderApp();
-        });
-      }
-  
-      // Fonction utilitaire pour le rendu
+    
+      // Fonction renderApp() inchangée
       function renderApp() {
         const contentEl = document.getElementById('content');
-  
+    
         if (!state.isLoggedIn) {
           contentEl.innerHTML = `
             <div class="card login-container">
@@ -433,10 +519,10 @@
               .toUpperCase();
             
             const formattedDate = email.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-    
+        
             let tagClass = 'pending';
             let tagText = 'En analyse';
-    
+        
             if (email.type === 'personal') {
               tagClass = 'personal';
               tagText = 'Personnel';
@@ -444,7 +530,7 @@
               tagClass = 'automated';
               tagText = 'Automatisé';
             }
-    
+        
             emailListHTML += `
               <div class="email-item">
                 <div class="avatar">${initials}</div>
@@ -460,13 +546,13 @@
               </div>
             `;
           });
-    
+        
           if (state.filteredEmails.length === 0) {
             emailListHTML = `<div class="email-item" style="justify-content: center">Aucun email ne correspond à ce filtre</div>`;
           }
-    
+        
           const progressPercentage = state.progress.toFixed(0);
-    
+        
           contentEl.innerHTML = `
             <div class="card">
               <div class="controls">
@@ -518,7 +604,6 @@
         }
       }
     
-      // Fonction pour filtrer les emails
       function applyFilter(filter) {
         state.currentFilter = filter;
         if (filter === 'all') {
@@ -531,6 +616,5 @@
     
       window.onload = initApp;
     </script>
-    
-  </body>
-  </html>
+</body>
+</html>

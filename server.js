@@ -15,7 +15,8 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.render('index', { 
     googleClientId: process.env.GOOGLE_CLIENT_ID,
-    googleApiKey: process.env.GOOGLE_API_KEY
+    googleApiKey: process.env.GOOGLE_API_KEY,
+    hfApiToken: process.env.HF_API_TOKEN
   });
 });
 
