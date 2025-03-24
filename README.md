@@ -85,7 +85,7 @@ MailFilter is a web application that analyzes your Gmail emails to identify your
   Chatbot interface that uses the Hugging Face API to answer user questions based on the context from the email list.
 
 - **public/**  
-  (Optional) Contains your static CSS, images, or JavaScript files.
+  (Optional) Contains images.
 
 ## Usage
 
