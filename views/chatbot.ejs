@@ -96,7 +96,6 @@
       border-top: 1px solid #eee;
     }
     
-    /* Styles spécifiques au chatbot */
     .chat-container {
       height: 500px;
       display: flex;
@@ -254,7 +253,6 @@
       
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
-          <!-- Les messages s'afficheront ici -->
         </div>
         
         <div class="chat-input">
@@ -263,7 +261,6 @@
         </div>
         
         <div class="suggestions" id="suggestions">
-          <!-- Les suggestions s'afficheront ici -->
         </div>
       </div>
     </div>
@@ -276,10 +273,8 @@
   <script type="module">
     import { InferenceClient } from "https://cdn.skypack.dev/@huggingface/inference";
     
-    // Instanciation du client Hugging Face
     const hfClient = new InferenceClient('<%= hfApiToken %>');
     
-    // État de l'application
     const state = {
       messages: [],
       isTyping: false
@@ -291,7 +286,7 @@
             trust: "High trust",
             interactions_frequency: 4,
             relationship_context: "Family",
-            expertise: "Finance", // Centre d'intérêt : Finance
+            expertise: "Finance", 
             emotional_proximity: "High",
             relationship_duration: "6 years",
             exchange_balance: 1.2,
@@ -379,7 +374,7 @@
             trust: "Medium trust",
             interactions_frequency: 5,
             relationship_context: "Colleague",
-            expertise: "Finance", // Même centre d'intérêt que le 1er email
+            expertise: "Finance", 
             emotional_proximity: "Medium",
             relationship_duration: "3 years",
             exchange_balance: 1.0,
@@ -399,22 +394,18 @@
         ];
 
     
-    // Suggestions fréquentes
     const initialSuggestions = [
-      "Comment filtrer mes emails promotionnels ?",
-      "Quels sont mes emails les plus importants ?",
-      "Comment retrouver les emails d'un expéditeur spécifique ?",
-      "Comment organiser ma boîte mail ?"
+      "Parmis mes relations, laquelle est la plus appropriée pour faire du babysitting pour ma fille ?",
+      "Parmis mes relations, laquelle est la plus appropriée pour gérer mon argent ?",
+      "Parmis mes relations, laquelle s'y connait le mieux en IA et en LLM ?",
+      "Parmis mes relations, laquelle est la plus appropriée pour être mon cofondateur technique ?"
     ];
     
-    // Fonction d'initialisation de l'application
     function initApp() {
       renderChat();
       
-      // Ajouter le message de bienvenue du bot
       addBotMessage(`Bonjour ! Je suis l'assistant MailFilter. Comment puis-je vous aider avec vos emails aujourd'hui ?`);
       
-      // Event listeners
       document.getElementById('sendButton').addEventListener('click', sendMessage);
       document.getElementById('messageInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -424,11 +415,9 @@
         window.location.href = '/';
       });
       
-      // Afficher les suggestions initiales
       renderSuggestions(initialSuggestions);
     }
     
-    // Rendu du chat
     function renderChat() {
       const messagesEl = document.getElementById('chatMessages');
       messagesEl.innerHTML = '';
@@ -437,7 +426,6 @@
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${msg.sender === 'user' ? 'user-message' : 'bot-message'}`;
         
-        // Formatter le texte avec des sauts de ligne HTML
         const formattedText = msg.text.replace(/\n/g, '<br>');
         messageDiv.innerHTML = formattedText;
         
@@ -449,7 +437,6 @@
         messagesEl.appendChild(messageDiv);
       });
       
-      // Afficher l'indicateur de frappe si nécessaire
       if (state.isTyping) {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'typing-indicator';
@@ -461,11 +448,9 @@
         messagesEl.appendChild(typingDiv);
       }
       
-      // Scroller vers le bas
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
     
-    // Afficher les suggestions
     function renderSuggestions(suggestions) {
       const suggestionsEl = document.getElementById('suggestions');
       suggestionsEl.innerHTML = '';
@@ -483,7 +468,6 @@
       });
     }
     
-    // Ajouter un message utilisateur
     function addUserMessage(text) {
       state.messages.push({
         text,
@@ -493,7 +477,6 @@
       renderChat();
     }
     
-    // Ajouter un message bot
     function addBotMessage(text) {
       state.messages.push({
         text,
@@ -503,7 +486,6 @@
       renderChat();
     }
     
-    // Formater l'heure d'un message
     function formatTime(date) {
       return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     }
@@ -512,7 +494,6 @@
         const marker = "Ne retourne aucun autre texte.";
         const index = text.indexOf(marker);
         if (index !== -1) {
-            // Renvoie tout ce qui vient après le marker
             return text.substring(index + marker.length).trim();
         }
         return text.trim();
@@ -525,35 +506,28 @@
         
         if (!userText) return;
         
-        // Ajouter le message utilisateur
         addUserMessage(userText);
         inputEl.value = '';
         
-        // Afficher l'indicateur de frappe
         state.isTyping = true;
         renderChat();
         
         try {
             let prompt = "";
-            // Si la question concerne la sélection dans les relations
             if (userText.toLowerCase().includes("mes relations") || userText.toLowerCase().includes("dans mes relations")) {
-                // Contexte synthétique à partir de la liste emails
                 const emailsContext = emails.map(e => {
                     return `Email: ${e.sender}, Confiance: ${e.trust}, Expertise: ${e.expertise}, Contexte: ${e.relationship_context}, Proximité: ${e.emotional_proximity}`;
                 }).join("\n");
                 
-                // Prompt court et explicite
                 prompt = `Relations:
     ${emailsContext}
 
     Tâche: "${userText}"
     Réponds uniquement par : "email: [adresse] - [explication courte]". Ne retourne aucun autre texte.`;
             } else {
-                // Prompt par défaut pour les autres questions
                 prompt = `Utilisateur: ${userText}\nAssistant:`;
             }
             
-            // Appel à l'API Hugging Face via textGeneration
             const response = await hfClient.textGeneration({
                 model: "mistralai/Mistral-Nemo-Instruct-2407",
                 inputs: prompt,
@@ -561,20 +535,17 @@
                 temperature: 0.7
             });
             
-            // Extraction de la réponse générée et post-traitement
             const rawResponse = response.generated_text;
             const botResponse = cleanResponse(rawResponse);
             
-            // Masquer l'indicateur de frappe et ajouter la réponse du bot
             state.isTyping = false;
             addBotMessage(botResponse);
             
-            // Suggestions de nouvelles questions
             const newSuggestions = [
-                "Comment gérer mes newsletters ?",
-                "Que faire avec les emails non lus ?",
-                "Comment archiver mes emails ?",
-                "Comment créer des filtres automatiques ?"
+                "Parmis mes relations, laquelle est la plus appropriée pour faire du babysitting pour ma fille ?",
+                "Parmis mes relations, laquelle est la plus appropriée pour gérer mon argent ?",
+                "Parmis mes relations, laquelle s'y connait le mieux en IA et en LLM ?",
+                "Parmis mes relations, laquelle est la plus appropriée pour être mon cofondateur technique ?"
             ];
             renderSuggestions(newSuggestions);
             
@@ -585,7 +556,6 @@
         }
     }
     
-    // Initialiser l'application au chargement
     window.onload = initApp;
   </script>
 </body>

@@ -8,7 +8,6 @@
   <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
   <style>
-    /* Votre CSS reste inchangé */
     :root {
       --primary: #4285F4;
       --dark: #333;
@@ -282,16 +281,13 @@
     <script type="module">
       import { InferenceClient } from "https://cdn.skypack.dev/@huggingface/inference";
     
-      // Instanciation du client avec votre token
       const hfClient = new InferenceClient('<%= hfApiToken %>');
     
-      // Fonction pour décoder la chaîne en base64 "web-safe"
       function decodeBase64Url(base64) {
         let base64Str = base64.replace(/-/g, '+').replace(/_/g, '/');
         return decodeURIComponent(escape(window.atob(base64Str)));
       }
     
-      // Fonction pour extraire le contenu texte du mail depuis le payload
       function getEmailContent(payload) {
         let content = "";
         if (payload.body && payload.body.data) {
@@ -307,7 +303,6 @@
         return content;
       }
     
-      // État de l'application
       const state = {
         isLoggedIn: false,
         accessToken: null,
@@ -322,11 +317,9 @@
         error: null
       };
     
-      let tokenClient; // Stocke le client OAuth2
+      let tokenClient; 
     
-      // Fonction qui utilise le modèle HuggingFace pour analyser l'email
       async function analyzeEmail(email) {
-        // Construction du prompt en français
         const promptMessage = {
           role: "user",
           content: `Analyse l'email suivant pour déterminer s'il provient d'un contact personnel. Retourne seulement True si c'est un contact personnel, sinon False.
@@ -343,7 +336,6 @@
             messages: [promptMessage],
             max_tokens: 10,
           });
-          // Extraction de la réponse retournée par le modèle
           const resultText = chatCompletion.choices[0].message;
           let result;
           try {
@@ -359,7 +351,6 @@
         }
       }
     
-      // Récupérer les emails de Gmail et les analyser via HuggingFace
       function fetchEmails() {
         state.isLoading = true;
         state.progress = 10;
@@ -374,7 +365,6 @@
           state.progress = 30;
           renderApp();
     
-          // Récupération du contenu complet de chaque email avec format=full
           const emailPromises = messages.map(msg => {
             return axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`, {
               headers: { Authorization: `Bearer ${state.accessToken}` }
@@ -387,7 +377,6 @@
           state.progress = 50;
           renderApp();
     
-          // Extraction des données des emails
           const emails = results.map(result => {
             const payload = result.data.payload;
             let subject = '';
@@ -406,18 +395,16 @@
               content: content,
               preview: payload.snippet || '',
               date: new Date(parseInt(result.data.internalDate)),
-              type: '' // sera déterminé par l'analyse
+              type: '' 
             };
           });
     
-          // Pour chaque email, on appelle HuggingFace pour déterminer s'il est un contact personnel
           const analyzePromises = emails.map(email => {
             return analyzeEmail(email).then(result => {
-              // On attend que le modèle retourne un objet JSON avec une clé is_contact
               if (result && result.is_contact !== undefined) {
                 email.type = result.is_contact ? 'personal' : 'automated';
               } else {
-                email.type = 'automated'; // valeur par défaut en cas d'absence de réponse
+                email.type = 'automated'; 
               }
               return email;
             }).catch(error => {
@@ -449,7 +436,6 @@
         });
       }
     
-      // Initialisation de l'application avec la nouvelle méthode
       function initApp() {
         renderApp();
     
@@ -486,7 +472,6 @@
         renderApp();
       }
     
-      // Fonction renderApp() inchangée
       function renderApp() {
         const contentEl = document.getElementById('content');
     
