@@ -1,8 +1,8 @@
 # MailFilter
 
 <p align="center">
-  <img src="puclic/mail_filter_automated.PNG" width="45%" />
-  <img src="images/mail_chatbot.PNG" width="45%" />
+  <img src="public/mail_filter_automated.PNG" width="45%" />
+  <img src="public/mail_chatbot.PNG" width="45%" />
 </p>
 
 <p align="center">
