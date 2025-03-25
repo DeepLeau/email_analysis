@@ -282,16 +282,13 @@
     const MAX_EMAILS = 80;
     const BATCH_SIZE = 50;
 
-    // Memoized sender classification to avoid repeated API calls
     const senderClassificationCache = new Map();
 
     async function classifySender(sender) {
-      // If sender has been previously classified, return cached result
       if (senderClassificationCache.has(sender)) {
         return senderClassificationCache.get(sender);
       }
 
-      // Truncate sender for analysis
       const truncatedSender = sender.length > 200 
         ? sender.substring(0, 200) + '...' 
         : sender;
@@ -332,7 +329,6 @@
 
         const result = JSON.parse(response.data.choices[0].message.content);
         
-        // Cache the classification for this sender
         senderClassificationCache.set(sender, result.is_contact);
         
         return result.is_contact;
@@ -343,7 +339,6 @@
     }
 
     async function analyzeEmail(email) {
-      // If sender has been previously classified, use cached result
       if (senderClassificationCache.has(email.sender)) {
         email.type = senderClassificationCache.get(email.sender) ? 'personal' : 'automated';
         return email;
@@ -392,7 +387,6 @@
 
         const result = JSON.parse(response.data.choices[0].message.content);
         
-        // Cache the classification for this sender
         senderClassificationCache.set(email.sender, result.is_contact);
         
         email.type = result.is_contact ? 'personal' : 'automated';
@@ -446,7 +440,6 @@
       renderApp();
   
       try {
-        // Fetch initial list of message IDs
         const listResponse = await axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${MAX_EMAILS}`, {
           headers: { Authorization: `Bearer ${state.accessToken}` }
         });
@@ -456,7 +449,6 @@
         state.progress = 30;
         renderApp();
   
-        // Fetch emails in batches
         const emailBatches = [];
         for (let i = 0; i < messages.length; i += BATCH_SIZE) {
           const batch = messages.slice(i, i + BATCH_SIZE);
@@ -467,12 +459,10 @@
           );
           emailBatches.push(await Promise.all(batchPromises));
           
-          // Update progress
           state.progress = 30 + Math.floor((i / messages.length) * 40);
           renderApp();
         }
   
-        // Process all emails
         const processedEmails = [];
         for (const batch of emailBatches) {
           const batchEmails = batch.map(result => {
@@ -497,22 +487,18 @@
             };
           });
   
-          // Batch analysis of emails
           const batchAnalysisPromises = batchEmails.map(async (email) => {
-            // Check if sender is already known
             if (senderClassificationCache.has(email.sender)) {
               email.type = senderClassificationCache.get(email.sender) ? 'personal' : 'automated';
               return email;
             }
             
-            // If not known, analyze the email
             return await analyzeEmail(email);
           });
   
           const analyzedBatch = await Promise.all(batchAnalysisPromises);
           processedEmails.push(...analyzedBatch);
           
-          // Update progress and re-render
           state.progress = 70 + Math.floor((processedEmails.length / messages.length) * 30);
           state.emails = processedEmails;
           state.filteredEmails = processedEmails;
@@ -521,7 +507,6 @@
           renderApp();
         }
   
-        // Final state update
         state.isLoading = false;
         state.progress = 100;
         renderApp();
@@ -533,7 +518,6 @@
       }
     }
   
-    // Remaining functions (initApp, logout, renderApp, applyFilter) remain the same as in previous version
     function initApp() {
       renderApp();
   
@@ -567,13 +551,11 @@
       state.totalEmails = 0;
       state.personalEmails = 0;
       state.automatedEmails = 0;
-      // Clear sender classification cache
       senderClassificationCache.clear();
       renderApp();
     }
   
     function renderApp() {
-      // Render function remains the same as in previous version
       const contentEl = document.getElementById('content');
   
       if (!state.isLoggedIn) {
