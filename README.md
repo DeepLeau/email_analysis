@@ -9,7 +9,7 @@
   <em>Screenshot: Email classification and chatbot assistant</em>
 </p>
 
-MailFilter is a web application that analyzes your Gmail emails to identify your important contacts and provides an interactive chatbot assistant to help you manage your email relationships and tasks. The assistant leverages the Hugging Face Inference API with the `mistralai/Mistral-Nemo-Instruct-2407` model to generate personalized responses.
+MailFilter is a web application that analyzes your Gmail emails to identify your important contacts and provides an interactive chatbot assistant to help you manage your email relationships and tasks. The assistant leverages the OpenAI API with the `GPT-4o` model to generate personalized responses.
 
 ## Features
 
