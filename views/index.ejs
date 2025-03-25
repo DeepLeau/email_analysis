@@ -266,118 +266,216 @@
   </style>
 </head>
 <body>
-    <div class="container" id="app">
-      <header>
-        <h1>MailFilter</h1>
-        <p class="description">Connectez-vous temporairement à Gmail pour identifier vos emails personnels importants</p>
-      </header>
-      
-      <div id="content"></div>
-      
-      <div id="privacy-notice">
-        <p>🔒 Vos données restent privées. Cette application utilise uniquement votre navigateur et n'enregistre aucune donnée sur nos serveurs.</p>
-      </div>
+  <div class="container" id="app">
+    <header>
+      <h1>MailFilter</h1>
+      <p class="description">Connectez-vous temporairement à Gmail pour identifier vos emails personnels importants</p>
+    </header>
+    
+    <div id="content"></div>
+    
+    <div id="privacy-notice">
+      <p>🔒 Vos données restent privées. Cette application utilise uniquement votre navigateur et n'enregistre aucune donnée sur nos serveurs.</p>
     </div>
-    <script type="module">
-      import { InferenceClient } from "https://cdn.skypack.dev/@huggingface/inference";
-    
-      const hfClient = new InferenceClient('<%= hfApiToken %>');
-    
-      function decodeBase64Url(base64) {
-        let base64Str = base64.replace(/-/g, '+').replace(/_/g, '/');
-        return decodeURIComponent(escape(window.atob(base64Str)));
+  </div>
+  <script type="module">
+    const MAX_EMAILS = 80;
+    const BATCH_SIZE = 50;
+
+    // Memoized sender classification to avoid repeated API calls
+    const senderClassificationCache = new Map();
+
+    async function classifySender(sender) {
+      // If sender has been previously classified, return cached result
+      if (senderClassificationCache.has(sender)) {
+        return senderClassificationCache.get(sender);
       }
-    
-      function getEmailContent(payload) {
-        let content = "";
-        if (payload.body && payload.body.data) {
-          content = decodeBase64Url(payload.body.data);
-        }
-        if (payload.parts && payload.parts.length) {
-          payload.parts.forEach(part => {
-            if (part.mimeType === "text/plain" && part.body && part.body.data) {
-              content += decodeBase64Url(part.body.data);
-            }
-          });
-        }
-        return content;
-      }
-    
-      const state = {
-        isLoggedIn: false,
-        accessToken: null,
-        emails: [],
-        filteredEmails: [],
-        currentFilter: 'all',
-        isLoading: false,
-        progress: 0,
-        totalEmails: 0,
-        personalEmails: 0,
-        automatedEmails: 0,
-        error: null
-      };
-    
-      let tokenClient; 
-    
-      async function analyzeEmail(email) {
-        const promptMessage = {
+
+      // Truncate sender for analysis
+      const truncatedSender = sender.length > 200 
+        ? sender.substring(0, 200) + '...' 
+        : sender;
+
+      const promptMessage = [
+        {
+          role: "system",
+          content: "Tu es un assistant expert dans la classification des expéditeurs d'emails. Détermine si l'expéditeur envoie généralement des emails personnels ou automatisés."
+        },
+        {
           role: "user",
-          content: `Analyse l'email suivant pour déterminer s'il provient d'un contact personnel. Retourne seulement True si c'est un contact personnel, sinon False.
-          
-    Sujet: ${email.subject}
-    De: ${email.sender}
-    Contenu: ${email.content}`
-        };
-    
-        try {
-          const chatCompletion = await hfClient.chatCompletion({
-            provider: "hf-inference",
-            model: "mistralai/Mistral-Nemo-Instruct-2407",
-            messages: [promptMessage],
-            max_tokens: 10,
-          });
-          const resultText = chatCompletion.choices[0].message;
-          let result;
-          try {
-            result = JSON.parse(resultText);
-          } catch (e) {
-            console.error("Erreur lors du parsing JSON de la réponse:", e);
-            result = {};
-          }
-          return result;
-        } catch (e) {
-          console.error("Erreur lors de l'appel à HuggingFace:", e);
-          return {};
+          content: `Analyse l'expéditeur pour déterminer s'il envoie des emails personnels ou automatisés.
+
+    Expéditeur: ${truncatedSender}
+
+    Réponds UNIQUEMENT par un JSON : {"is_contact": true/false}`
         }
+      ];
+
+      try {
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+          model: "gpt-3.5-turbo",
+          messages: promptMessage,
+          max_tokens: 10,
+          temperature: 0.7,
+          response_format: { type: "json_object" }
+        }, {
+          headers: {
+            "Authorization": `Bearer <%= openApiToken %>`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (!response.data?.choices?.[0]?.message?.content) {
+          console.error("Réponse inattendue de l'API:", response);
+          return false;
+        }
+
+        const result = JSON.parse(response.data.choices[0].message.content);
+        
+        // Cache the classification for this sender
+        senderClassificationCache.set(sender, result.is_contact);
+        
+        return result.is_contact;
+      } catch (e) {
+        console.error("Erreur de classification de l'expéditeur:", e);
+        return false;
       }
-    
-      function fetchEmails() {
-        state.isLoading = true;
-        state.progress = 10;
-        renderApp();
-    
-        axios.get('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5', {
+    }
+
+    async function analyzeEmail(email) {
+      // If sender has been previously classified, use cached result
+      if (senderClassificationCache.has(email.sender)) {
+        email.type = senderClassificationCache.get(email.sender) ? 'personal' : 'automated';
+        return email;
+      }
+
+      const truncatedContent = email.content.length > 1000 
+        ? email.content.substring(0, 1000) + '...' 
+        : email.content;
+
+      const promptMessage = [
+        {
+          role: "system",
+          content: "Tu es un assistant expert dans la classification des emails. Détermine si l'email est personnel ou automatisé en analysant son contenu."
+        },
+        {
+          role: "user",
+          content: `Analyse l'email pour déterminer s'il est personnel ou automatisé.
+
+    Sujet: ${email.subject || 'Aucun sujet'}
+    De: ${email.sender || 'Expéditeur inconnu'}
+    Contenu: ${truncatedContent}
+
+    Réponds UNIQUEMENT par un JSON : {"is_contact": true/false}`
+        }
+      ];
+
+      try {
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+          model: "gpt-3.5-turbo",
+          messages: promptMessage,
+          max_tokens: 10,
+          temperature: 0.7,
+          response_format: { type: "json_object" }
+        }, {
+          headers: {
+            "Authorization": `Bearer <%= openApiToken %>`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (!response.data?.choices?.[0]?.message?.content) {
+          console.error("Réponse inattendue de l'API:", response);
+          email.type = 'automated';
+          return email;
+        }
+
+        const result = JSON.parse(response.data.choices[0].message.content);
+        
+        // Cache the classification for this sender
+        senderClassificationCache.set(email.sender, result.is_contact);
+        
+        email.type = result.is_contact ? 'personal' : 'automated';
+        return email;
+      } catch (e) {
+        console.error("Erreur d'analyse de l'email:", e);
+        email.type = 'automated';
+        return email;
+      }
+    }
+
+    const state = {
+      isLoggedIn: false,
+      accessToken: null,
+      emails: [],
+      filteredEmails: [],
+      currentFilter: 'all',
+      isLoading: false,
+      progress: 0,
+      totalEmails: 0,
+      personalEmails: 0,
+      automatedEmails: 0,
+      error: null
+    };
+  
+    let tokenClient; 
+  
+    function decodeBase64Url(base64) {
+      let base64Str = base64.replace(/-/g, '+').replace(/_/g, '/');
+      return decodeURIComponent(escape(window.atob(base64Str)));
+    }
+  
+    function getEmailContent(payload) {
+      let content = "";
+      if (payload.body && payload.body.data) {
+        content = decodeBase64Url(payload.body.data);
+      }
+      if (payload.parts && payload.parts.length) {
+        payload.parts.forEach(part => {
+          if (part.mimeType === "text/plain" && part.body && part.body.data) {
+            content += decodeBase64Url(part.body.data);
+          }
+        });
+      }
+      return content;
+    }
+  
+    async function fetchEmails() {
+      state.isLoading = true;
+      state.progress = 10;
+      renderApp();
+  
+      try {
+        // Fetch initial list of message IDs
+        const listResponse = await axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${MAX_EMAILS}`, {
           headers: { Authorization: `Bearer ${state.accessToken}` }
-        })
-        .then(response => {
-          const messages = response.data.messages || [];
-          state.totalEmails = messages.length;
-          state.progress = 30;
-          renderApp();
-    
-          const emailPromises = messages.map(msg => {
-            return axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`, {
+        });
+  
+        const messages = listResponse.data.messages || [];
+        state.totalEmails = messages.length;
+        state.progress = 30;
+        renderApp();
+  
+        // Fetch emails in batches
+        const emailBatches = [];
+        for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+          const batch = messages.slice(i, i + BATCH_SIZE);
+          const batchPromises = batch.map(msg => 
+            axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`, {
               headers: { Authorization: `Bearer ${state.accessToken}` }
-            });
-          });
-    
-          return Promise.all(emailPromises);
-        })
-        .then(results => {
-          state.progress = 50;
+            })
+          );
+          emailBatches.push(await Promise.all(batchPromises));
+          
+          // Update progress
+          state.progress = 30 + Math.floor((i / messages.length) * 40);
           renderApp();
-    
-          const emails = results.map(result => {
+        }
+  
+        // Process all emails
+        const processedEmails = [];
+        for (const batch of emailBatches) {
+          const batchEmails = batch.map(result => {
             const payload = result.data.payload;
             let subject = '';
             let sender = '';
@@ -398,209 +496,212 @@
               type: '' 
             };
           });
-    
-          const analyzePromises = emails.map(email => {
-            return analyzeEmail(email).then(result => {
-              if (result && result.is_contact !== undefined) {
-                email.type = result.is_contact ? 'personal' : 'automated';
-              } else {
-                email.type = 'automated'; 
-              }
+  
+          // Batch analysis of emails
+          const batchAnalysisPromises = batchEmails.map(async (email) => {
+            // Check if sender is already known
+            if (senderClassificationCache.has(email.sender)) {
+              email.type = senderClassificationCache.get(email.sender) ? 'personal' : 'automated';
               return email;
-            }).catch(error => {
-              console.error("Erreur d'analyse de l'email:", error);
-              email.type = 'automated';
-              return email;
-            });
-          });
-    
-          return Promise.all(analyzePromises);
-        })
-        .then(updatedEmails => {
-          state.progress = 80;
-          renderApp();
-    
-          state.emails = updatedEmails;
-          state.filteredEmails = updatedEmails;
-          state.personalEmails = updatedEmails.filter(email => email.type === 'personal').length;
-          state.automatedEmails = updatedEmails.filter(email => email.type === 'automated').length;
-          state.isLoading = false;
-          state.progress = 100;
-          renderApp();
-        })
-        .catch(error => {
-          console.error("Erreur lors de la récupération des emails :", error);
-          state.error = "Erreur lors de la récupération des emails: " + (error.response?.data?.error?.message || error.message);
-          state.isLoading = false;
-          renderApp();
-        });
-      }
-    
-      function initApp() {
-        renderApp();
-    
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: '<%= googleClientId %>',
-          scope: 'https://www.googleapis.com/auth/gmail.readonly',
-          callback: (response) => {
-            if (response.error) {
-              state.error = response.error;
-              renderApp();
-            } else {
-              state.accessToken = response.access_token;
-              state.isLoggedIn = true;
-              renderApp();
-              fetchEmails();
-            }
-          }
-        });
-    
-        document.getElementById('loginButton').addEventListener('click', () => {
-          tokenClient.requestAccessToken();
-        });
-      }
-    
-      function logout() {
-        state.isLoggedIn = false;
-        state.accessToken = null;
-        state.emails = [];
-        state.filteredEmails = [];
-        state.progress = 0;
-        state.totalEmails = 0;
-        state.personalEmails = 0;
-        state.automatedEmails = 0;
-        renderApp();
-      }
-    
-      function renderApp() {
-        const contentEl = document.getElementById('content');
-    
-        if (!state.isLoggedIn) {
-          contentEl.innerHTML = `
-            <div class="card login-container">
-              <h2>Connectez-vous à votre compte Gmail</h2>
-              <p>L'accès est temporaire et nous ne stockons aucune donnée.</p>
-              <button id="loginButton" class="btn btn-google">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo">
-                Se connecter avec Google
-              </button>
-              ${state.error ? `<div class="status error">${state.error}</div>` : ''}
-            </div>
-          `;
-        } else {
-          let emailListHTML = '';
-          state.filteredEmails.forEach(email => {
-            let senderName = email.sender;
-            const matchName = senderName.match(/^"?([^"<]+)"?\s*(?:<[^>]*>)?/);
-            if (matchName && matchName[1]) {
-              senderName = matchName[1].trim();
             }
             
-            const initials = senderName.split(' ')
-              .filter(part => part.length > 0)
-              .map(name => name[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase();
-            
-            const formattedDate = email.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-        
-            let tagClass = 'pending';
-            let tagText = 'En analyse';
-        
-            if (email.type === 'personal') {
-              tagClass = 'personal';
-              tagText = 'Personnel';
-            } else if (email.type === 'automated') {
-              tagClass = 'automated';
-              tagText = 'Automatisé';
-            }
-        
-            emailListHTML += `
-              <div class="email-item">
-                <div class="avatar">${initials}</div>
-                <div class="content">
-                  <div class="sender">
-                    <span>${senderName}</span>
-                    <span class="tag ${tagClass}">${tagText}</span>
-                  </div>
-                  <div class="subject">${email.subject}</div>
-                  <div class="preview">${email.preview}</div>
-                </div>
-                <div class="date">${formattedDate}</div>
-              </div>
-            `;
+            // If not known, analyze the email
+            return await analyzeEmail(email);
           });
-        
-          if (state.filteredEmails.length === 0) {
-            emailListHTML = `<div class="email-item" style="justify-content: center">Aucun email ne correspond à ce filtre</div>`;
-          }
-        
-          const progressPercentage = state.progress.toFixed(0);
-        
-          contentEl.innerHTML = `
-            <div class="card">
-              <div class="controls">
-                <button class="btn" onclick="logout()">Se déconnecter</button>
-                <button class="btn" onclick="window.location.href='/chatbot'">Chatbot</button>
-              </div>
-              ${state.isLoading ? `
-                <div>
-                  <h3>Analyse de vos emails en cours...</h3>
-                  <div class="progress-bar">
-                    <div class="fill" style="width: ${progressPercentage}%"></div>
-                  </div>
-                  <p>${progressPercentage}% - Analysé ${Math.floor(state.totalEmails * state.progress / 100)} sur ${state.totalEmails} emails</p>
-                </div>
-              ` : `
-                <div class="stats">
-                  <div class="stat-card">
-                    <div class="label">Total</div>
-                    <div class="value">${state.totalEmails}</div>
-                    <div class="description">emails</div>
-                  </div>
-                  <div class="stat-card personal">
-                    <div class="label">Personnels</div>
-                    <div class="value">${state.personalEmails}</div>
-                    <div class="description">emails importants</div>
-                  </div>
-                  <div class="stat-card automated">
-                    <div class="label">Automatisés</div>
-                    <div class="value">${state.automatedEmails}</div>
-                    <div class="description">newsletters, etc.</div>
-                  </div>
-                </div>
-                <div class="filter-bar">
-                  <div class="filter-option ${state.currentFilter === 'all' ? 'active' : ''}" onclick="applyFilter('all')">
-                    Tous (${state.emails.length})
-                  </div>
-                  <div class="filter-option ${state.currentFilter === 'personal' ? 'active' : ''}" onclick="applyFilter('personal')">
-                    Personnels (${state.personalEmails})
-                  </div>
-                  <div class="filter-option ${state.currentFilter === 'automated' ? 'active' : ''}" onclick="applyFilter('automated')">
-                    Automatisés (${state.automatedEmails})
-                  </div>
-                </div>
-              `}
-              <div class="email-list">
-                ${emailListHTML}
-              </div>
-            </div>
-          `;
+  
+          const analyzedBatch = await Promise.all(batchAnalysisPromises);
+          processedEmails.push(...analyzedBatch);
+          
+          // Update progress and re-render
+          state.progress = 70 + Math.floor((processedEmails.length / messages.length) * 30);
+          state.emails = processedEmails;
+          state.filteredEmails = processedEmails;
+          state.personalEmails = processedEmails.filter(email => email.type === 'personal').length;
+          state.automatedEmails = processedEmails.filter(email => email.type === 'automated').length;
+          renderApp();
         }
-      }
-    
-      function applyFilter(filter) {
-        state.currentFilter = filter;
-        if (filter === 'all') {
-          state.filteredEmails = [...state.emails];
-        } else {
-          state.filteredEmails = state.emails.filter(email => email.type === filter);
-        }
+  
+        // Final state update
+        state.isLoading = false;
+        state.progress = 100;
+        renderApp();
+      } catch (error) {
+        console.error("Erreur lors de la récupération des emails :", error);
+        state.error = "Erreur lors de la récupération des emails: " + (error.response?.data?.error?.message || error.message);
+        state.isLoading = false;
         renderApp();
       }
-    
-      window.onload = initApp;
-    </script>
+    }
+  
+    // Remaining functions (initApp, logout, renderApp, applyFilter) remain the same as in previous version
+    function initApp() {
+      renderApp();
+  
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: '<%= googleClientId %>',
+        scope: 'https://www.googleapis.com/auth/gmail.readonly',
+        callback: (response) => {
+          if (response.error) {
+            state.error = response.error;
+            renderApp();
+          } else {
+            state.accessToken = response.access_token;
+            state.isLoggedIn = true;
+            renderApp();
+            fetchEmails();
+          }
+        }
+      });
+  
+      document.getElementById('loginButton').addEventListener('click', () => {
+        tokenClient.requestAccessToken();
+      });
+    }
+  
+    function logout() {
+      state.isLoggedIn = false;
+      state.accessToken = null;
+      state.emails = [];
+      state.filteredEmails = [];
+      state.progress = 0;
+      state.totalEmails = 0;
+      state.personalEmails = 0;
+      state.automatedEmails = 0;
+      // Clear sender classification cache
+      senderClassificationCache.clear();
+      renderApp();
+    }
+  
+    function renderApp() {
+      // Render function remains the same as in previous version
+      const contentEl = document.getElementById('content');
+  
+      if (!state.isLoggedIn) {
+        contentEl.innerHTML = `
+          <div class="card login-container">
+            <h2>Connectez-vous à votre compte Gmail</h2>
+            <p>L'accès est temporaire et nous ne stockons aucune donnée.</p>
+            <button id="loginButton" class="btn btn-google">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo">
+              Se connecter avec Google
+            </button>
+            ${state.error ? `<div class="status error">${state.error}</div>` : ''}
+          </div>
+        `;
+      } else {
+        let emailListHTML = '';
+        state.filteredEmails.forEach(email => {
+          let senderName = email.sender;
+          const matchName = senderName.match(/^"?([^"<]+)"?\s*(?:<[^>]*>)?/);
+          if (matchName && matchName[1]) {
+            senderName = matchName[1].trim();
+          }
+          
+          const initials = senderName.split(' ')
+            .filter(part => part.length > 0)
+            .map(name => name[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+          
+          const formattedDate = email.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      
+          let tagClass = 'pending';
+          let tagText = 'En analyse';
+      
+          if (email.type === 'personal') {
+            tagClass = 'personal';
+            tagText = 'Personnel';
+          } else if (email.type === 'automated') {
+            tagClass = 'automated';
+            tagText = 'Automatisé';
+          }
+      
+          emailListHTML += `
+            <div class="email-item">
+              <div class="avatar">${initials}</div>
+              <div class="content">
+                <div class="sender">
+                  <span>${senderName}</span>
+                  <span class="tag ${tagClass}">${tagText}</span>
+                </div>
+                <div class="subject">${email.subject}</div>
+                <div class="preview">${email.preview}</div>
+              </div>
+              <div class="date">${formattedDate}</div>
+            </div>
+          `;
+        });
+      
+        if (state.filteredEmails.length === 0) {
+          emailListHTML = `<div class="email-item" style="justify-content: center">Aucun email ne correspond à ce filtre</div>`;
+        }
+      
+        const progressPercentage = state.progress.toFixed(0);
+      
+        contentEl.innerHTML = `
+          <div class="card">
+            <div class="controls">
+              <button class="btn" onclick="logout()">Se déconnecter</button>
+              <button class="btn" onclick="window.location.href='/chatbot'">Chatbot</button>
+            </div>
+            ${state.isLoading ? `
+              <div>
+                <h3>Analyse de vos emails en cours...</h3>
+                <div class="progress-bar">
+                  <div class="fill" style="width: ${progressPercentage}%"></div>
+                </div>
+                <p>${progressPercentage}% - Analysé ${Math.floor(state.totalEmails * state.progress / 100)} sur ${state.totalEmails} emails</p>
+              </div>
+            ` : `
+              <div class="stats">
+                <div class="stat-card">
+                  <div class="label">Total</div>
+                  <div class="value">${state.totalEmails}</div>
+                  <div class="description">emails</div>
+                </div>
+                <div class="stat-card personal">
+                  <div class="label">Personnels</div>
+                  <div class="value">${state.personalEmails}</div>
+                  <div class="description">emails importants</div>
+                </div>
+                <div class="stat-card automated">
+                  <div class="label">Automatisés</div>
+                  <div class="value">${state.automatedEmails}</div>
+                  <div class="description">newsletters, etc.</div>
+                </div>
+              </div>
+              <div class="filter-bar">
+                <div class="filter-option ${state.currentFilter === 'all' ? 'active' : ''}" onclick="applyFilter('all')">
+                  Tous (${state.emails.length})
+                </div>
+                <div class="filter-option ${state.currentFilter === 'personal' ? 'active' : ''}" onclick="applyFilter('personal')">
+                  Personnels (${state.personalEmails})
+                </div>
+                <div class="filter-option ${state.currentFilter === 'automated' ? 'active' : ''}" onclick="applyFilter('automated')">
+                  Automatisés (${state.automatedEmails})
+                </div>
+              </div>
+            `}
+            <div class="email-list">
+              ${emailListHTML}
+            </div>
+          </div>
+        `;
+      }
+    }
+  
+    function applyFilter(filter) {
+      state.currentFilter = filter;
+      if (filter === 'all') {
+        state.filteredEmails = [...state.emails];
+      } else {
+        state.filteredEmails = state.emails.filter(email => email.type === filter);
+      }
+      renderApp();
+    }
+  
+    window.onload = initApp;
+  </script>
 </body>
 </html>

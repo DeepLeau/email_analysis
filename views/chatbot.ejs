@@ -271,128 +271,145 @@
   </div>
   
   <script type="module">
-    import { InferenceClient } from "https://cdn.skypack.dev/@huggingface/inference";
-    
-    const hfClient = new InferenceClient('<%= hfApiToken %>');
-    
     const state = {
       messages: [],
       isTyping: false
     };
 
     const emails = [
-        {
-            sender: "john.doe@gmail.com",
-            trust: "High trust",
-            interactions_frequency: 4,
-            relationship_context: "Family",
-            expertise: "Finance", 
-            emotional_proximity: "High",
-            relationship_duration: "6 years",
-            exchange_balance: 1.2,
-            relations_connections: ["jane.smith@yahoo.com"]
-        },
-        {
-            sender: "jane.smith@yahoo.com",
-            trust: "Medium trust",
-            interactions_frequency: 3,
-            relationship_context: "Friend",
-            expertise: "Technology",
-            emotional_proximity: "Medium",
-            relationship_duration: "3 years",
-            exchange_balance: 0.8,
-            relations_connections: ["john.doe@gmail.com", "emma@live.fr"]
-        },
-        {
-            sender: "robert@outlook.com",
-            trust: "Low trust",
-            interactions_frequency: 1,
-            relationship_context: "Acquaintance",
-            expertise: "Art",
-            emotional_proximity: "Low",
-            relationship_duration: "1 year",
-            exchange_balance: 0.5,
-            relations_connections: []
-        },
-        {
-            sender: "emma@live.fr",
-            trust: "Very high trust",
-            interactions_frequency: 8,
-            relationship_context: "Family",
-            expertise: "Health",
-            emotional_proximity: "Very High",
-            relationship_duration: "10 years",
-            exchange_balance: 1.5,
-            relations_connections: ["michael@hotmail.com"]
-        },
-        {
-            sender: "michael@hotmail.com",
-            trust: "High trust",
-            interactions_frequency: 6,
-            relationship_context: "Colleague",
-            expertise: "Engineering",
-            emotional_proximity: "Medium",
-            relationship_duration: "4 years",
-            exchange_balance: 1.0,
-            relations_connections: ["olivia@yahoo.com"]
-        },
-        {
-            sender: "sophia@gmail.com",
-            trust: "Medium trust",
-            interactions_frequency: 4,
-            relationship_context: "Friend",
-            expertise: "Travel",
-            emotional_proximity: "High",
-            relationship_duration: "2 years",
-            exchange_balance: 1.1,
-            relations_connections: ["william@aol.com"]
-        },
-        {
-            sender: "william@aol.com",
-            trust: "Low trust",
-            interactions_frequency: 2,
-            relationship_context: "Acquaintance",
-            expertise: "Cooking",
-            emotional_proximity: "Low",
-            relationship_duration: "1.5 years",
-            exchange_balance: 0.7,
-            relations_connections: []
-        },
-        {
-            sender: "olivia@yahoo.com",
-            trust: "High trust",
-            interactions_frequency: 7,
-            relationship_context: "Friend",
-            expertise: "Literature",
-            emotional_proximity: "High",
-            relationship_duration: "5 years",
-            exchange_balance: 1.3,
-            relations_connections: ["michael@hotmail.com"]
-        },
-        {
-            sender: "lucas@icloud.com",
-            trust: "Medium trust",
-            interactions_frequency: 5,
-            relationship_context: "Colleague",
-            expertise: "Finance", 
-            emotional_proximity: "Medium",
-            relationship_duration: "3 years",
-            exchange_balance: 1.0,
-            relations_connections: ["john.doe@gmail.com"]
-        },
-        {
-            sender: "mia@live.com",
-            trust: "Very high trust",
-            interactions_frequency: 9,
-            relationship_context: "Family",
-            expertise: "Music",
-            emotional_proximity: "Very High",
-            relationship_duration: "12 years",
-            exchange_balance: 1.8,
-            relations_connections: ["emma@live.fr"]
-        }
-        ];
-
+      {
+      sender: "john.doe@gmail.com",
+      trust: "High trust",
+      interactions_frequency: 4,
+      relationship_context: "Family",
+      expertise: ["Finance"],
+      emotional_proximity: "High",
+      relationship_duration: "6 years",
+      exchange_balance: 1.2,
+      relations_connections: ["jane.smith@yahoo.com"]
+    },
+    {
+      sender: "jane.smith@yahoo.com",
+      trust: "Medium trust",
+      interactions_frequency: 3,
+      relationship_context: "Friend",
+      expertise: ["Technology"],
+      emotional_proximity: "Medium",
+      relationship_duration: "3 years",
+      exchange_balance: 0.8,
+      relations_connections: ["john.doe@gmail.com", "emma@live.fr"]
+    },
+    {
+      sender: "robert.martin@outlook.com",
+      trust: "Low trust",
+      interactions_frequency: 1,
+      relationship_context: "Acquaintance",
+      expertise: ["Art"],
+      emotional_proximity: "Low",
+      relationship_duration: "1 year",
+      exchange_balance: 0.5,
+      relations_connections: []
+    },
+    {
+      sender: "emma.jones@live.fr",
+      trust: "Very high trust",
+      interactions_frequency: 8,
+      relationship_context: "Family",
+      expertise: ["Health"],
+      emotional_proximity: "Very High",
+      relationship_duration: "10 years",
+      exchange_balance: 1.5,
+      relations_connections: ["michael.brown@hotmail.com"]
+    },
+    {
+      sender: "michael.brown@hotmail.com",
+      trust: "High trust",
+      interactions_frequency: 6,
+      relationship_context: "Colleague",
+      expertise: ["Engineering"],
+      emotional_proximity: "Medium",
+      relationship_duration: "4 years",
+      exchange_balance: 1.0,
+      relations_connections: ["olivia.taylor@yahoo.com"]
+    },
+    {
+      sender: "sophia.wilson@gmail.com",
+      trust: "Medium trust",
+      interactions_frequency: 4,
+      relationship_context: "Friend",
+      expertise: ["Travel"],
+      emotional_proximity: "High",
+      relationship_duration: "2 years",
+      exchange_balance: 1.1,
+      relations_connections: ["william.moore@aol.com"]
+    },
+    {
+      sender: "william.moore@aol.com",
+      trust: "Low trust",
+      interactions_frequency: 2,
+      relationship_context: "Acquaintance",
+      expertise: ["Cooking"],
+      emotional_proximity: "Low",
+      relationship_duration: "1.5 years",
+      exchange_balance: 0.7,
+      relations_connections: []
+    },
+    {
+      sender: "olivia.taylor@yahoo.com",
+      trust: "High trust",
+      interactions_frequency: 7,
+      relationship_context: "Friend",
+      expertise: ["Literature"],
+      emotional_proximity: "High",
+      relationship_duration: "5 years",
+      exchange_balance: 1.3,
+      relations_connections: ["michael.brown@hotmail.com"]
+    },
+    {
+      sender: "lucas.anderson@icloud.com",
+      trust: "Medium trust",
+      interactions_frequency: 5,
+      relationship_context: "Colleague",
+      expertise: ["Finance"],
+      emotional_proximity: "Medium",
+      relationship_duration: "3 years",
+      exchange_balance: 1.0,
+      relations_connections: ["john.doe@gmail.com"]
+    },
+    {
+      sender: "mia.davis@live.com",
+      trust: "Very high trust",
+      interactions_frequency: 9,
+      relationship_context: "Family",
+      expertise: ["Music"],
+      emotional_proximity: "Very High",
+      relationship_duration: "12 years",
+      exchange_balance: 1.8,
+      relations_connections: ["emma.jones@live.fr"]
+    },
+    {
+      sender: "ethan.james@gmail.com",
+      trust: "High trust",
+      interactions_frequency: 6,
+      relationship_context: "Friend",
+      expertise: ["Sports"],
+      emotional_proximity: "High",
+      relationship_duration: "7 years",
+      exchange_balance: 1.4,
+      relations_connections: ["sophia.wilson@gmail.com"]
+    },
+    {
+      sender: "isabella.miller@yahoo.com",
+      trust: "Medium trust",
+      interactions_frequency: 4,
+      relationship_context: "Friend",
+      expertise: ["Marketing"],
+      emotional_proximity: "Medium",
+      relationship_duration: "3 years",
+      exchange_balance: 0.9,
+      relations_connections: []
+    },
+    ];
     
     const initialSuggestions = [
       "Parmis mes relations, laquelle est la plus appropriée pour faire du babysitting pour ma fille ?",
@@ -513,29 +530,49 @@
         renderChat();
         
         try {
-            let prompt = "";
+            let messages = [];
+            
             if (userText.toLowerCase().includes("mes relations") || userText.toLowerCase().includes("dans mes relations")) {
                 const emailsContext = emails.map(e => {
                     return `Email: ${e.sender}, Confiance: ${e.trust}, Expertise: ${e.expertise}, Contexte: ${e.relationship_context}, Proximité: ${e.emotional_proximity}`;
                 }).join("\n");
                 
-                prompt = `Relations:
-    ${emailsContext}
-
-    Tâche: "${userText}"
-    Réponds uniquement par : "email: [adresse] - [explication courte]". Ne retourne aucun autre texte.`;
+                messages = [
+                    {
+                        role: "system", 
+                        content: `Tu es un assistant spécialisé dans l'analyse des relations email. Voici les détails de mes contacts:\n${emailsContext}`
+                    },
+                    {
+                        role: "user", 
+                        content: `${userText}\n\nRéponds uniquement par : "email: [adresse] - [explication courte]". Ne retourne aucun autre texte.`
+                    }
+                ];
             } else {
-                prompt = `Utilisateur: ${userText}\nAssistant:`;
+                messages = [
+                    {
+                        role: "system", 
+                        content: "Tu es un assistant spécialisé dans la gestion des emails et des relations."
+                    },
+                    {
+                        role: "user", 
+                        content: userText
+                    }
+                ];
             }
             
-            const response = await hfClient.textGeneration({
-                model: "mistralai/Mistral-Nemo-Instruct-2407",
-                inputs: prompt,
+            const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+                model: "gpt-3.5-turbo",
+                messages: messages,
                 max_tokens: 500,
                 temperature: 0.7
+            }, {
+                headers: {
+                    "Authorization": `Bearer <%= openApiToken %>`,
+                    "Content-Type": "application/json"
+                }
             });
             
-            const rawResponse = response.generated_text;
+            const rawResponse = response.data.choices[0].message.content;
             const botResponse = cleanResponse(rawResponse);
             
             state.isTyping = false;

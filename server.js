@@ -16,13 +16,13 @@ app.get('/', (req, res) => {
   res.render('index', { 
     googleClientId: process.env.GOOGLE_CLIENT_ID,
     googleApiKey: process.env.GOOGLE_API_KEY,
-    hfApiToken: process.env.HF_API_TOKEN
+    openApiToken: process.env.OPENAI_API_KEY
   });
 });
 
 app.get('/chatbot', (req, res) => {
   res.render('chatbot', { 
-    hfApiToken: process.env.HF_API_TOKEN
+    openApiToken: process.env.OPENAI_API_KEY
   });
 });
 
