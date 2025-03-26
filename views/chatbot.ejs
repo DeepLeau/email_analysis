@@ -243,12 +243,12 @@
   <div class="container" id="app">
     <header>
       <h1>MailFilter Assistant</h1>
-      <p class="description">Posez vos questions sur vos emails et la gestion de votre messagerie</p>
+      <p class="description">Ask your questions about your personal relations</p>
     </header>
     
     <div class="card">
       <div class="controls">
-        <button class="btn" id="backButton">Retour à l'analyse</button>
+        <button class="btn" id="backButton">Back to Analysis</button>
       </div>
       
       <div class="chat-container">
@@ -257,7 +257,7 @@
         
         <div class="chat-input">
           <input type="text" id="messageInput" placeholder="Tapez votre message ici..." autocomplete="off">
-          <button class="send-btn" id="sendButton">Envoyer</button>
+          <button class="send-btn" id="sendButton">Send</button>
         </div>
         
         <div class="suggestions" id="suggestions">
@@ -266,162 +266,37 @@
     </div>
     
     <div id="privacy-notice">
-      <p>🔒 Vos données restent privées. Cette application utilise uniquement votre navigateur et n'enregistre aucune donnée sur nos serveurs.</p>
+      <p>🔒 Your personal data are private. This application don't save your personal data, they are only stored in your browser.</p>
     </div>
   </div>
   
-  <script type="module">
+  <script type="module">    
     const state = {
       messages: [],
       isTyping: false
     };
-
-    const emails = [
-      {
-      sender: "john.doe@gmail.com",
-      trust: "High trust",
-      interactions_frequency: 4,
-      relationship_context: "Family",
-      expertise: ["Finance"],
-      emotional_proximity: "High",
-      relationship_duration: "6 years",
-      exchange_balance: 1.2,
-      relations_connections: ["jane.smith@yahoo.com"]
-    },
-    {
-      sender: "jane.smith@yahoo.com",
-      trust: "Medium trust",
-      interactions_frequency: 3,
-      relationship_context: "Friend",
-      expertise: ["Technology"],
-      emotional_proximity: "Medium",
-      relationship_duration: "3 years",
-      exchange_balance: 0.8,
-      relations_connections: ["john.doe@gmail.com", "emma@live.fr"]
-    },
-    {
-      sender: "robert.martin@outlook.com",
-      trust: "Low trust",
-      interactions_frequency: 1,
-      relationship_context: "Acquaintance",
-      expertise: ["Art"],
-      emotional_proximity: "Low",
-      relationship_duration: "1 year",
-      exchange_balance: 0.5,
-      relations_connections: []
-    },
-    {
-      sender: "emma.jones@live.fr",
-      trust: "Very high trust",
-      interactions_frequency: 8,
-      relationship_context: "Family",
-      expertise: ["Health"],
-      emotional_proximity: "Very High",
-      relationship_duration: "10 years",
-      exchange_balance: 1.5,
-      relations_connections: ["michael.brown@hotmail.com"]
-    },
-    {
-      sender: "michael.brown@hotmail.com",
-      trust: "High trust",
-      interactions_frequency: 6,
-      relationship_context: "Colleague",
-      expertise: ["Engineering"],
-      emotional_proximity: "Medium",
-      relationship_duration: "4 years",
-      exchange_balance: 1.0,
-      relations_connections: ["olivia.taylor@yahoo.com"]
-    },
-    {
-      sender: "sophia.wilson@gmail.com",
-      trust: "Medium trust",
-      interactions_frequency: 4,
-      relationship_context: "Friend",
-      expertise: ["Travel"],
-      emotional_proximity: "High",
-      relationship_duration: "2 years",
-      exchange_balance: 1.1,
-      relations_connections: ["william.moore@aol.com"]
-    },
-    {
-      sender: "william.moore@aol.com",
-      trust: "Low trust",
-      interactions_frequency: 2,
-      relationship_context: "Acquaintance",
-      expertise: ["Cooking"],
-      emotional_proximity: "Low",
-      relationship_duration: "1.5 years",
-      exchange_balance: 0.7,
-      relations_connections: []
-    },
-    {
-      sender: "olivia.taylor@yahoo.com",
-      trust: "High trust",
-      interactions_frequency: 7,
-      relationship_context: "Friend",
-      expertise: ["Literature"],
-      emotional_proximity: "High",
-      relationship_duration: "5 years",
-      exchange_balance: 1.3,
-      relations_connections: ["michael.brown@hotmail.com"]
-    },
-    {
-      sender: "lucas.anderson@icloud.com",
-      trust: "Medium trust",
-      interactions_frequency: 5,
-      relationship_context: "Colleague",
-      expertise: ["Finance"],
-      emotional_proximity: "Medium",
-      relationship_duration: "3 years",
-      exchange_balance: 1.0,
-      relations_connections: ["john.doe@gmail.com"]
-    },
-    {
-      sender: "mia.davis@live.com",
-      trust: "Very high trust",
-      interactions_frequency: 9,
-      relationship_context: "Family",
-      expertise: ["Music"],
-      emotional_proximity: "Very High",
-      relationship_duration: "12 years",
-      exchange_balance: 1.8,
-      relations_connections: ["emma.jones@live.fr"]
-    },
-    {
-      sender: "ethan.james@gmail.com",
-      trust: "High trust",
-      interactions_frequency: 6,
-      relationship_context: "Friend",
-      expertise: ["Sports"],
-      emotional_proximity: "High",
-      relationship_duration: "7 years",
-      exchange_balance: 1.4,
-      relations_connections: ["sophia.wilson@gmail.com"]
-    },
-    {
-      sender: "isabella.miller@yahoo.com",
-      trust: "Medium trust",
-      interactions_frequency: 4,
-      relationship_context: "Friend",
-      expertise: ["Marketing"],
-      emotional_proximity: "Medium",
-      relationship_duration: "3 years",
-      exchange_balance: 0.9,
-      relations_connections: []
-    },
-    ];
     
+    let emails = [];
+
+    fetch('../datas/relations_modelization.json')
+      .then(response => response.json())
+      .then(data => {
+        emails = data;
+        console.log("Emails loaded :", emails);
+      })
+      .catch(error => console.error("Error while loading emails :", error));
+
     const initialSuggestions = [
-      "Parmis mes relations, laquelle est la plus appropriée pour faire du babysitting pour ma fille ?",
-      "Parmis mes relations, laquelle est la plus appropriée pour gérer mon argent ?",
-      "Parmis mes relations, laquelle s'y connait le mieux en IA et en LLM ?",
-      "Parmis mes relations, laquelle est la plus appropriée pour être mon cofondateur technique ?"
+      "Who among my contacts is best suited to babysit my daughter?",
+      "Which of my contacts is the most capable of managing my finances?",
+      "Who knows the most about AI and LLMs among my relationships?",
+      "Who would be the best cofounder for a startup from my network?"
     ];
     
     function initApp() {
       renderChat();
       
-      addBotMessage(`Bonjour ! Je suis l'assistant MailFilter. Comment puis-je vous aider avec vos emails aujourd'hui ?`);
+      addBotMessage(`Hello ! I'm MailFilter AI, your personnal assistant. How can I help you find the right relationship ?`);
       
       document.getElementById('sendButton').addEventListener('click', sendMessage);
       document.getElementById('messageInput').addEventListener('keypress', (e) => {
@@ -518,80 +393,66 @@
 
     
     async function sendMessage() {
-        const inputEl = document.getElementById('messageInput');
-        const userText = inputEl.value.trim();
-        
-        if (!userText) return;
-        
-        addUserMessage(userText);
-        inputEl.value = '';
-        
-        state.isTyping = true;
-        renderChat();
-        
-        try {
-            let messages = [];
-            
-            if (userText.toLowerCase().includes("mes relations") || userText.toLowerCase().includes("dans mes relations")) {
-                const emailsContext = emails.map(e => {
-                    return `Email: ${e.sender}, Confiance: ${e.trust}, Expertise: ${e.expertise}, Contexte: ${e.relationship_context}, Proximité: ${e.emotional_proximity}`;
-                }).join("\n");
-                
-                messages = [
-                    {
-                        role: "system", 
-                        content: `Tu es un assistant spécialisé dans l'analyse des relations email. Voici les détails de mes contacts:\n${emailsContext}`
-                    },
-                    {
-                        role: "user", 
-                        content: `${userText}\n\nRéponds uniquement par : "email: [adresse] - [explication courte]". Ne retourne aucun autre texte.`
-                    }
-                ];
-            } else {
-                messages = [
-                    {
-                        role: "system", 
-                        content: "Tu es un assistant spécialisé dans la gestion des emails et des relations."
-                    },
-                    {
-                        role: "user", 
-                        content: userText
-                    }
-                ];
-            }
-            
-            const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-                model: "gpt-3.5-turbo",
-                messages: messages,
-                max_tokens: 500,
-                temperature: 0.7
-            }, {
-                headers: {
-                    "Authorization": `Bearer <%= openApiToken %>`,
-                    "Content-Type": "application/json"
-                }
-            });
-            
-            const rawResponse = response.data.choices[0].message.content;
-            const botResponse = cleanResponse(rawResponse);
-            
-            state.isTyping = false;
-            addBotMessage(botResponse);
-            
-            const newSuggestions = [
-                "Parmis mes relations, laquelle est la plus appropriée pour faire du babysitting pour ma fille ?",
-                "Parmis mes relations, laquelle est la plus appropriée pour gérer mon argent ?",
-                "Parmis mes relations, laquelle s'y connait le mieux en IA et en LLM ?",
-                "Parmis mes relations, laquelle est la plus appropriée pour être mon cofondateur technique ?"
-            ];
-            renderSuggestions(newSuggestions);
-            
-        } catch (error) {
-            console.error("Erreur lors de l'appel à l'API:", error);
-            state.isTyping = false;
-            addBotMessage("Désolé, j'ai rencontré une erreur. Pourriez-vous reformuler votre question ?");
-        }
+      const inputEl = document.getElementById('messageInput');
+      const userText = inputEl.value.trim();
+
+      if (!userText) return;
+
+      addUserMessage(userText);
+      inputEl.value = '';
+
+      state.isTyping = true;
+      renderChat();
+
+      try {
+        const emailsContext = emails.map(e => {
+          return `Email: ${e.sender}, Trust: ${e.trust}, Expertise: ${e.expertise.join(", ")}, Context: ${e.relationship_context}, Emotional proximity: ${e.emotional_proximity}, Relationship duration: ${e.relationship_duration}`;
+        }).join("\n");
+
+        const messages = [
+          {
+            role: "system",
+            content: `You are an intelligent assistant specialized in analyzing personal email relationships. Here are my contacts:\n\n${emailsContext}`
+          },
+          {
+            role: "user",
+            content: `My question: ${userText}\n\nBased on the contacts above, respond only with: "email: [address] - [short explanation why this person is the most relevant]." Do not return any other text.`
+          }
+        ];
+
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+          model: "gpt-3.5-turbo",
+          messages: messages,
+          max_tokens: 500,
+          temperature: 0.7
+        }, {
+          headers: {
+            "Authorization": `Bearer <%= openApiToken %>`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        const rawResponse = response.data.choices[0].message.content;
+        const botResponse = cleanResponse(rawResponse);
+
+        state.isTyping = false;
+        addBotMessage(botResponse);
+
+        const newSuggestions = [
+          "Who among my contacts is best suited to babysit my daughter?",
+          "Which of my contacts is the most capable of managing my finances?",
+          "Who knows the most about AI and LLMs among my relationships?",
+          "Who would be the best cofounder for a startup from my network?"
+        ];
+        renderSuggestions(newSuggestions);
+
+      } catch (error) {
+        console.error("API error:", error);
+        state.isTyping = false;
+        addBotMessage("Sorry, something went wrong. Could you please rephrase your question?");
+      }
     }
+
     
     window.onload = initApp;
   </script>

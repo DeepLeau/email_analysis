@@ -14,7 +14,7 @@ def extract_interest_centers(json_file):
         data = json.load(f)
     relations_interest_centers = {}
     for author, content in data.items():
-        prompt = f"From the content of all emails : {content}, could you tell me the expertise/interest zone of the user ? Only return the interest centers/expertise in words separated by a coma"
+        prompt = f"From the content of all emails : {content}, could you tell me the expertise/interest zone of the user ? Only return the interest centers/expertise in words separated by a coma. Don't return too many interest centers/expertise, focus on general ones."
         res = generate_response_by_ai(prompt)
         relations_interest_centers[author] = res
     return relations_interest_centers
@@ -60,25 +60,39 @@ def generate_response_by_ai(prompt):
     except Exception as e:
         print(f"API error: {e}")
         return None
+    
+
+def build_combined_json(json_file):
+    with open(json_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    interest_centers = extract_interest_centers(json_file)
+    interactions = get_number_of_interactions(json_file)
+    trust_levels = get_trust(json_file)
+    proximity_levels = get_relationships_proximity(json_file)
+
+    final_data = []
+
+    for sender in data.keys():
+        email_info = {
+            "sender": sender,
+            "trust": trust_levels.get(sender, "unknown").capitalize() + " trust",
+            "interactions_frequency": interactions.get(sender, 0),
+            "relationship_context": proximity_levels.get(sender, "Unknown").capitalize(),
+            "expertise": [e.strip().capitalize() for e in interest_centers.get(sender, "").split(",") if e],
+            "relationship_duration": "Unknown",  
+            "exchange_balance": 1.0,  
+            "relations_connections": []  
+        }
+        final_data.append(email_info)
+
+    with open("./datas/relations_modelization.json", "w", encoding='utf-8') as f_out:
+        json.dump(final_data, f_out, indent=2)
 
 
 if __name__=="__main__":
-    json_file = "relations.json"
+    json_file = "./datas/relations.json"
 
-    # Extract interest centers
-    interest_centers = extract_interest_centers(json_file)
-    print(interest_centers)
-
-    # Get interactions frequency
-    interactions = get_number_of_interactions(json_file)
-    print(interactions)
-
-    # Get trust level
-    trust = get_trust(json_file)
-    print(trust)
-
-    # Get relationships proximity
-    proximity = get_relationships_proximity(json_file)
-    print(proximity)
+    build_combined_json(json_file)
 
 

@@ -8,6 +8,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 
 client = OpenAI(api_key=api_key)
+me = os.getenv("MY_EMAIL")
 
 
 def identify_relations(json_file):
@@ -18,7 +19,7 @@ def identify_relations(json_file):
     for msg in data[:1000]:
         content = msg['Message_body']
         author = msg['From']
-        if author not in blacklist:
+        if author not in blacklist and me not in author:
             res = ai_identify(content, author)
             if res == True:
                 if author in relations.keys():
@@ -57,8 +58,8 @@ def ai_identify(content, author, max_chars=100):
 
 
 if __name__ == "__main__":
-    relations = identify_relations("emails.json")
-    with open("relations.json", "w", encoding="utf-8") as f:
+    relations = identify_relations("./datas/emails.json")
+    with open("./datas/relations.json", "w", encoding="utf-8") as f:
         json.dump(relations, f, indent=2, ensure_ascii=False)
 
-    print("The relations have been saved in ‘relations.json’.")
+    print("The relations have been saved in 'relations.json'.")
