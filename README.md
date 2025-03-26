@@ -1,125 +1,133 @@
-# MailFilter
+# MailFilter Assistant
 
-<p align="center">
-  <img src="public/mail_filter_automated.PNG" width="45%" />
-  <img src="public/mail_chatbot.PNG" width="45%" />
-</p>
+MailFilter is a web-based AI-powered assistant that analyzes your email inbox to extract and model your relationships. It uses the Gmail API and OpenAI to identify which people you interact with the most and what kind of relationship you have with them. You can then use a chatbot interface to ask questions like "Who among my contacts is best suited to manage my finances?" and get an AI-powered recommendation.
 
-<p align="center">
-  <em>Screenshot: Email classification and chatbot assistant</em>
-</p>
+---
 
-MailFilter is a web application that analyzes your Gmail emails to identify your important contacts and provides an interactive chatbot assistant to help you manage your email relationships and tasks. The assistant leverages the OpenAI API with the `GPT-4o` model to generate personalized responses.
+## 🚀 Features
 
-## Features
+- Extract personal emails from Gmail using OAuth.
+- Identify human contacts vs. automated messages.
+- Analyze frequency, trust, emotional proximity, and expertise using OpenAI.
+- Store a structured relationship model in JSON.
+- Chatbot interface to interact with your personal network via natural language.
+- Clean UI with progress tracking and suggestion prompts.
 
-- **Secure Gmail Login**  
-  Uses OAuth 2.0 authentication to temporarily connect to your Gmail account and read your emails.
+---
 
-- **Email Analysis**  
-  Retrieves and filters your emails to automatically determine whether they are personal or automated.
+## 📁 Project Structure
 
-- **Chatbot Assistant**  
-  An interactive chatbot allows you to ask questions about your contacts and receive personalized advice (for example, selecting the most appropriate contact for a specific task).
+```
+.
+├── datas/
+│   ├── emails.json               # Extracted emails
+│   ├── relations.json            # Filtered human contacts
+│   └── relations_modelization.json  # Final structured relationship data
+│
+├── scripts/
+│   ├── get_emails.py             # Connects to Gmail and fetches emails
+│   ├── identify_relations.py     # Filters real human senders using OpenAI
+│   ├── create_relations.py       # Builds final JSON model of relations
+│   └── server.py       # Flask backend to trigger Python scripts
+│
+├── views/
+│   ├── index.ejs                 # Homepage with analysis trigger
+│   └── chatbot.ejs               # Chatbot interface
+│
+├── server.js                     # Express.js server (frontend)
+├── .env                          # Environment variables (API keys)
+```
 
-- **Custom Prompt Engineering**  
-  The assistant dynamically builds a prompt incorporating your contacts’ context to generate a concise answer.
+---
 
-## Technologies Used
+## 🛠️ Setup Instructions
 
-- **Backend**  
-  - [Node.js](https://nodejs.org/)
-  - [Express](https://expressjs.com/)
-  - [Axios](https://axios-http.com/)
-  - [dotenv](https://github.com/motdotla/dotenv)
+### 1. Clone the repository
 
-- **Frontend**  
-  - HTML, CSS, and JavaScript (ES Modules)
-  - [EJS](https://ejs.co/) for templating
+```bash
+git clone https://github.com/DeepLeau/email_analysis
+cd email_analysis
+```
 
-- **APIs**  
-  - [Google OAuth2 and Gmail API](https://developers.google.com/gmail/api)
-  - [Hugging Face Inference API](https://huggingface.co/docs/api-inference/index)
+### 2. Install dependencies
 
-## Installation
+#### Frontend (Node.js + Express)
 
-1. **Clone the repository:**
+```bash
+npm install
+```
 
-   ```bash
-   git clone https://github.com/DeepLeau/email_analysis
-   cd email_analysis
-   ```
+#### Backend (Python + Flask)
 
-2. **Install dependencies:**
+```bash
+pip install flask flask-cors openai oauth2client google-api-python-client python-dotenv beautifulsoup4 lxml
+```
 
-   ```bash
-   npm install
-   ```
+### 3. Set up environment variables
 
-3. **Create a `.env` file** at the root of the project with your API keys. For example:
+Create a `.env` file in the root directory with the following:
 
-   ```env
-   GOOGLE_CLIENT_ID=YourGoogleClientID
-   GOOGLE_CLIENT_SECRET=YourGoogleClientSecret
-   GOOGLE_API_KEY=YourGoogleApiKey
-   HF_API_TOKEN=YourHuggingFaceApiToken
-   ```
+```
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_API_KEY=your-google-api-key
+OPENAI_API_KEY=your-openai-key
+MY_EMAIL=your-email@example.com
+```
 
-4. **Start the server:**
+Also place your `credentials.json` (from Google Cloud Console) in the root.
 
-   ```bash
-   node server.js
-   ```
+---
 
-5. **Access the application** in your browser at [http://localhost:3000](http://localhost:3000).
+## 🧪 Running the Project
 
-## Project Structure
+### 1. Start the frontend (on port 3000)
 
-- **server.js**  
-  Main Express server file that handles routes, Google authentication, and view rendering.
+```bash
+node server.js
+```
 
-- **views/index.ejs**  
-  Main page for Gmail login and displaying analyzed emails.
+### 2. Start the backend Flask API (on port 5000)
 
-- **views/chatbot.ejs**  
-  Chatbot interface that uses the Hugging Face API to answer user questions based on the context from the email list.
+```bash
+python server.py
+```
 
-- **public/**  
-  (Optional) Contains images.
+### 3. Visit the app
 
-## Usage
+Open `http://localhost:3000` in your browser.
 
-1. **Gmail Login:**  
-   On the main page, log in with your Gmail account to allow the app to read and analyze your emails.
+---
 
-2. **Email Analysis:**  
-   The application fetches and displays your emails, categorizing them as personal or automated.
+## ⚙️ Workflow
 
-3. **Chatbot Assistant:**  
-   Navigate to the chatbot page to ask questions about your contacts. For example, you might ask:  
-   *"Among my contacts, who should I contact for babysitting for my daughter?"*  
-   The assistant uses the context from your email list and returns an answer in the format:  
-   `email: [address] - [short explanation]`
+1. **Start Analysis** (on `/`) triggers:
+   - `get_emails.py` → Fetch emails
+   - `identify_relations.py` → Filter senders via OpenAI
+   - `create_relations.py` → Generate structured relations JSON
 
-4. **Navigation:**  
-   Use the buttons provided in the interface to switch between the email analysis view and the chatbot.
+2. **Use Chatbot** (on `/chatbot`) to ask questions like:
+   - “Who can help me with AI?”
+   - “Who could be my technical co-founder?”
 
-## Customization
+---
 
-- **Prompt Engineering:**  
-  The `sendMessage()` function in `chatbot.ejs` dynamically builds a prompt for the Hugging Face model. You can adjust this prompt as needed.
+## 📌 Notes
 
-- **Response Post-Processing:**  
-  The `cleanResponse()` function extracts the desired output from the generated text. Modify it to fine-tune the final response.
+- You must authenticate with Google the first time.
+- Emails and data are not stored in the cloud — everything runs locally.
+- CORS is enabled in `server.py` to allow interaction between ports.
 
-## Notes
+---
 
-- **Privacy and Security:**  
-  All user data stays within the browser. No data is stored on the server.
+## 🤖 Powered by
 
-- **External API Dependencies:**  
-  Ensure you have the required API keys for Google and Hugging Face, and that your configuration adheres to their usage policies and quotas.
+- OpenAI GPT-3.5 Turbo
+- Gmail API
+- Flask + Express.js
 
-## License
+---
 
-MIT License
+## 📬 License
+
+MIT – do whatever you want, but be cool 😎
