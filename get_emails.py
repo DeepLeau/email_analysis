@@ -48,7 +48,7 @@ def ReadEmailDetails(service, user_id, msg_id):
         temp_dict['Message_body'] = get_body(payload)
 
     except Exception as e:
-        print(f"Erreur sur le mail {msg_id} :", e)
+        print(f"Error on the email {msg_id} :", e)
         temp_dict = None
 
     return temp_dict
@@ -68,17 +68,17 @@ def ListAllMessages(service, user_id):
                 maxResults=500
             ).execute()
             messages.extend(response['messages'])
-            print(f"... {len(response['messages'])} emails de plus récupérés, {len(messages)} au total")
+            print(f"... {len(response['messages'])} emails retrieved, {len(messages)} in total")
             sys.stdout.flush()
 
         return messages
 
     except errors.HttpError as error:
-        print(f'Erreur HTTP : {error}')
+        print(f'HTTP Error : {error}')
         return []
 
 if __name__ == "__main__":
-    print('\n--- Démarrage de la récupération des emails ---')
+    print('\n--- Start email recovery ---')
 
     SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
     store = file.Storage('storage.json')
@@ -91,14 +91,14 @@ if __name__ == "__main__":
     GMAIL = discovery.build('gmail', 'v1', http=creds.authorize(Http()))
     user_id = 'me'
 
-    print('\n--- Récupération de la liste des messages ---')
+    print('\n--- Messages Recovery ---')
     email_list = ListAllMessages(GMAIL, user_id)
 
     rows = 0
     filename = f'emails_{strftime("%Y_%m_%d_%H%M%S", gmtime())}.json'
     all_emails = []
 
-    print('\n--- Récupération du contenu des emails ---')
+    print('\n--- Emails Content Recovery ---')
 
     for email in email_list:
         msg_id = email['id']
@@ -108,11 +108,11 @@ if __name__ == "__main__":
             rows += 1
 
         if rows > 0 and rows % 50 == 0:
-            print(f"... {rows} emails traités")
+            print(f"... {rows} emails treated")
             sys.stdout.flush()
 
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(all_emails, f, ensure_ascii=False, indent=2)
 
-    print(f'\n✅ {rows} emails exportés dans "{filename}"')
-    print('--- Terminé ---')
+    print(f'\n {rows} emails exported in "{filename}"')
+    print('--- Finished ---')

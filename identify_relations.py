@@ -15,7 +15,7 @@ def identify_relations(json_file):
         data = json.load(f)
     relations = {}
     blacklist = []
-    for msg in data:
+    for msg in data[:1000]:
         content = msg['Message_body']
         author = msg['From']
         if author not in blacklist:
@@ -34,13 +34,13 @@ def ai_identify(content, author, max_chars=100):
     content = content[:max_chars]
 
     prompt = (
-        f"Tu es un système de classification d'emails.\n"
-        f"Voici l'expéditeur : {author}\n"
-        f"Voici le contenu de l'email :\n\"{content}\"\n\n"
-        "Est-ce que ce message vient d'une personne qui s'adresse à un humain directement "
-        "(comme un contact professionnel ou personnel), ou bien est-ce un message automatique "
-        "(newsletter, publicité, notification de service) ?\n\n"
-        "Réponds uniquement par 'oui' si c'est un humain, ou 'non' si c'est automatique."
+        f"You're an email classification system.\n"
+        f"Here's the sender : {author}\n"
+        f"Here are the contents of the email :\n\"{content}\"\n\n"
+        "Does this message come from a person speaking directly to a human? "
+        "(such as a business or personal contact), or is it an automatic message "
+        "(newsletter, advertising, service notification)?\n\n"
+        "Just answer 'true' if it's a human, or 'false' if it's automatic."
     )
 
     try:
@@ -50,9 +50,9 @@ def ai_identify(content, author, max_chars=100):
             temperature=0
         )
         reply = response.choices[0].message.content.strip().lower()
-        return reply.startswith("oui")
+        return reply.startswith("true")
     except Exception as e:
-        print(f"Erreur API: {e}")
+        print(f"API error: {e}")
         return None
 
 
@@ -61,4 +61,4 @@ if __name__ == "__main__":
     with open("relations.json", "w", encoding="utf-8") as f:
         json.dump(relations, f, indent=2, ensure_ascii=False)
 
-    print("✅ Les relations ont été enregistrées dans 'relations.json'")
+    print("The relations have been saved in ‘relations.json’.")
