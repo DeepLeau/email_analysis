@@ -1,5 +1,14 @@
 # MailFilter Assistant
 
+<p align="center">
+  <img src="public/mail_filter_automated.PNG" width="45%" />
+  <img src="public/mail_chatbot.PNG" width="45%" />
+</p>
+
+<p align="center">
+  <em>Screenshot: Email classification and chatbot assistant</em>
+</p>
+
 MailFilter is a web-based AI-powered assistant that analyzes your email inbox to extract and model your relationships. It uses the Gmail API and OpenAI to identify which people you interact with the most and what kind of relationship you have with them. You can then use a chatbot interface to ask questions like "Who among my contacts is best suited to manage my finances?" and get an AI-powered recommendation.
 
 ---
