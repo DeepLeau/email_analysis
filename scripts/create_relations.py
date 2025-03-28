@@ -86,12 +86,12 @@ def build_combined_json(json_file):
         }
         final_data.append(email_info)
 
-    with open("./datas/relations_modelization.json", "w", encoding='utf-8') as f_out:
+    with open("./data/relations_modelization.json", "w", encoding='utf-8') as f_out:
         json.dump(final_data, f_out, indent=2)
 
 
 if __name__=="__main__":
-    json_file = "./datas/relations.json"
+    json_file = "./data/relations.json"
 
     build_combined_json(json_file)
 

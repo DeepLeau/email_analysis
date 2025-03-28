@@ -58,8 +58,8 @@ def ai_identify(content, author, max_chars=100):
 
 
 if __name__ == "__main__":
-    relations = identify_relations("./datas/emails.json")
-    with open("./datas/relations.json", "w", encoding="utf-8") as f:
+    relations = identify_relations("./data/emails.json")
+    with open("./data/relations.json", "w", encoding="utf-8") as f:
         json.dump(relations, f, indent=2, ensure_ascii=False)
 
     print("The relations have been saved in 'relations.json'.")

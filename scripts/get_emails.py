@@ -95,7 +95,7 @@ if __name__ == "__main__":
     email_list = ListAllMessages(GMAIL, user_id)
 
     rows = 0
-    filename = f'./datas/emails.json'
+    filename = f'./data/emails.json'
     all_emails = []
 
     print('\n--- Emails Content Recovery ---')

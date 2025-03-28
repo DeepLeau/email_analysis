@@ -28,7 +28,7 @@ MailFilter is a web-based AI-powered assistant that analyzes your email inbox to
 
 ```
 .
-├── datas/
+├── data/
 │   ├── emails.json               # Extracted emails
 │   ├── relations.json            # Filtered human contacts
 │   └── relations_modelization.json  # Final structured relationship data
